@@ -4,6 +4,42 @@ A knowledge compiler that turns raw sources into a living Markdown wiki, searcha
 
 Not a chat-over-docs toy. A **compiler** — deterministic pipelines that ingest raw material, extract structure, and produce a portable knowledge vault you actually own.
 
+## Why Atlas
+
+Most tools that "work with your documents" do the same thing: chunk your files, stuff them into a vector database, and let an LLM guess at answers. You get a chat window. The knowledge stays trapped inside the tool. When the tool dies, your work dies with it.
+
+Atlas takes a different approach:
+
+**You keep everything.** The output is plain Markdown files on your filesystem. Open them in Obsidian, VS Code, or `cat`. No vendor lock-in, no proprietary format, no database you can't read without the app running.
+
+**Nothing is invented.** Every claim in a search result traces back to a specific passage in a specific source. No "based on your documents, I think..." — you get the actual text, with citations, so you can verify it yourself.
+
+**It gets better as you add sources.** Each new document doesn't just sit in a pile — the compiler cross-references it against everything else. Entities link across sources. Indexes rebuild. Backlinks connect related ideas. The vault becomes a knowledge graph that grows denser and more useful over time.
+
+**Your edits are sacred.** Edit a compiled note by hand? The compiler detects the conflict and preserves your version. It will never silently overwrite your work.
+
+**It's deterministic.** Run the same sources through the pipeline twice, get the same vault. No temperature knobs, no "try again for a different answer." When you need LLM judgment — for synthesis, summarization, or simulation — it's an explicit, opt-in step, not the default.
+
+### Who it's for
+
+- **Researchers** building literature reviews from dozens of papers
+- **Analysts** compiling competitive intelligence from scattered sources
+- **Consultants** maintaining structured knowledge bases across client engagements
+- **Policy teams** tracking regulatory changes across multiple documents
+- **Anyone** drowning in documents who needs structure, not another chat window
+
+### Compared to alternatives
+
+| | Chat-over-docs tools | Note-taking apps | **Atlas** |
+|---|---|---|---|
+| Output format | Chat messages (ephemeral) | Manual notes (labor-intensive) | **Compiled Markdown vault (automatic, portable)** |
+| Source tracing | "Based on your docs..." | Whatever you remember to write | **Every fact cites its source passage** |
+| Cross-referencing | None | Manual linking | **Automatic entity extraction + wikilinks** |
+| Your data | Trapped in vendor DB | Yours, but unstructured | **Yours, structured, Obsidian-compatible** |
+| Runs without the app | No | Yes, but raw notes | **Yes — it's just Markdown files** |
+| Handles contradictions | Picks one, doesn't tell you | You have to notice | **Health checks flag inconsistencies** |
+| Scales with sources | Slower, noisier answers | More manual work | **Denser knowledge graph, better indexes** |
+
 ## What It Does
 
 You feed it documents. It gives you back a linked knowledge base.
