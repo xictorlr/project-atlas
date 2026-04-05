@@ -1,0 +1,20 @@
+The Knowledge Compiler
+
+A knowledge compiler is a system that transforms raw sources into a living Markdown wiki. It serves as a bridge between raw data and organized knowledge.
+
+Key Features:
+- Source ingestion from multiple formats
+- Automatic compilation to Markdown
+- Search indexing
+- Citation tracking
+- Interactive vault synchronization
+
+Architecture:
+The system operates in three main phases:
+1. Ingestion: Parse and extract text from sources
+2. Compilation: Generate Markdown notes with proper structure
+3. Publishing: Make the vault searchable and browsable
+
+Each phase is designed to be deterministic and reproducible. The vault itself is a first-class product artifact, not an export side effect.
+
+Sources are preserved for provenance, and all generated content includes metadata about how it was created. This ensures users can always trace insights back to their original sources.

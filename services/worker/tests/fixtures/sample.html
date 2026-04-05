@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Data Pipelines</title>
+</head>
+<body>
+    <h1>Understanding Data Pipelines</h1>
+    <p>A data pipeline is a series of processes that move data from one system to another, transforming it along the way.</p>
+
+    <h2>Components</h2>
+    <ul>
+        <li>Source: Where data originates</li>
+        <li>Transform: Processing steps that modify or enrich data</li>
+        <li>Load: Destination system for processed data</li>
+    </ul>
+
+    <h2>Best Practices</h2>
+    <p>Effective pipelines share common characteristics:</p>
+    <ol>
+        <li>Idempotency: Running the pipeline multiple times produces the same result</li>
+        <li>Observability: Pipeline state is visible via logs and metrics</li>
+        <li>Resilience: Failed steps can be retried without side effects</li>
+        <li>Schema-first: Data contracts are explicit and validated</li>
+    </ol>
+
+    <h2>Example Pipeline</h2>
+    <p>A typical ETL pipeline might look like this:</p>
+    <pre><code>
+extract_data() -> validate() -> transform() -> load()
+    </code></pre>
+
+    <p>Each step should be independently testable and idempotent.</p>
+</body>
+</html>
