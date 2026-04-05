@@ -1,0 +1,53 @@
+{
+  "defaultMode": "plan",
+  "outputStyle": "research-executive",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "LS",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:code.claude.com)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./private/**)",
+      "Read(./vault/private/**)",
+      "Bash(rm -rf *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-generated-files.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-summary.sh",
+            "async": true,
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "ATLAS_VAULT_DIR": "./vault",
+    "ATLAS_DOCS_DIR": "./docs",
+    "ATLAS_PROJECT_NAME": "Project Atlas"
+  }
+}
