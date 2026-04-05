@@ -55,7 +55,7 @@ graph TB
         WEB["Next.js 15<br/>React 19 + Tailwind + shadcn/ui"]
     end
 
-    subgraph "API"
+    subgraph "Backend"
         API["FastAPI<br/>Pydantic v2 · SQLAlchemy"]
         SEARCH["Search Engine<br/>TF-IDF · Evidence Packs"]
     end
