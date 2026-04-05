@@ -10,6 +10,7 @@
     "allowJs": true,
     "incremental": true,
     "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@atlas/shared": ["../../packages/shared/src"],

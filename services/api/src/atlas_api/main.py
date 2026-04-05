@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atlas_api.config import settings
-from atlas_api.routes import health, jobs, sources, vault, workspaces
+from atlas_api.routes import evidence, health, jobs, search, sources, vault, workspaces
 
 app = FastAPI(
     title="Atlas API",
@@ -32,6 +32,8 @@ app.include_router(workspaces.router, prefix=API_PREFIX)
 app.include_router(sources.router, prefix=API_PREFIX)
 app.include_router(jobs.router, prefix=API_PREFIX)
 app.include_router(vault.router, prefix=API_PREFIX)
+app.include_router(search.router, prefix=API_PREFIX)
+app.include_router(evidence.router, prefix=API_PREFIX)
 
 
 @app.exception_handler(404)
