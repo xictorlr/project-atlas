@@ -272,10 +272,6 @@ Run evals:
 cd services/api && uv run pytest tests/evals/
 ```
 
-## Built With
-
-This entire codebase was generated using [Claude Code](https://docs.anthropic.com/en/docs/claude-code) agent teams. The `.claude/` directory contains the instruction set (rules, skills, agents) that produced it. See `CLAUDE.md` for the project configuration.
-
 ## License
 
 MIT
