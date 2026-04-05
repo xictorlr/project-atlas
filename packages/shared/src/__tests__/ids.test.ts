@@ -9,7 +9,7 @@ import {
   asEvidencePackId,
   asOutputArtifactId,
   asJobId,
-} from '../types/ids';
+} from '../types/ids.js';
 
 describe('ID type guards', () => {
   it('asWorkspaceId converts string to WorkspaceId', () => {

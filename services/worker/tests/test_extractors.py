@@ -23,7 +23,7 @@ class TestExtractText:
         assert result.title == "My Document Title"
 
     def test_language_detection_english(self):
-        text = ("the quick brown fox jumps over the lazy dog " * 10).encode()
+        text = ("the cat is in the house and it is that thing to do " * 5).encode()
         result = extract_text(text)
         assert result.language == "en"
 

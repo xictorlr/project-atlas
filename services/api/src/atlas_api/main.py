@@ -5,7 +5,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atlas_api.config import settings
-from atlas_api.routes import evidence, health, jobs, search, sources, vault, workspaces
+from atlas_api.routes import (
+    evals,
+    evidence,
+    health,
+    health_check,
+    integrations_deerflow,
+    integrations_hermes,
+    integrations_mirofish,
+    jobs,
+    search,
+    sources,
+    sync,
+    vault,
+    workspaces,
+)
 
 app = FastAPI(
     title="Atlas API",
@@ -34,6 +48,21 @@ app.include_router(jobs.router, prefix=API_PREFIX)
 app.include_router(vault.router, prefix=API_PREFIX)
 app.include_router(search.router, prefix=API_PREFIX)
 app.include_router(evidence.router, prefix=API_PREFIX)
+app.include_router(health_check.router, prefix=API_PREFIX)
+app.include_router(evals.router, prefix=API_PREFIX)
+
+# ── optional integration routes (feature-flagged) ────────────────────────────
+if settings.obsidian_sync_enabled:
+    app.include_router(sync.router, prefix=API_PREFIX)
+
+if settings.deerflow_enabled:
+    app.include_router(integrations_deerflow.router, prefix=API_PREFIX)
+
+if settings.hermes_enabled:
+    app.include_router(integrations_hermes.router, prefix=API_PREFIX)
+
+if settings.mirofish_enabled:
+    app.include_router(integrations_mirofish.router, prefix=API_PREFIX)
 
 
 @app.exception_handler(404)

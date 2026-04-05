@@ -19,3 +19,33 @@ async def health() -> dict[str, object]:
         "environment": settings.environment,
         "timestamp": time.time(),
     }
+
+
+@router.get("/health/ready")
+async def health_ready() -> dict[str, object]:
+    """Readiness probe — checks database connectivity."""
+    checks: dict[str, str] = {}
+    all_ok = True
+
+    try:
+        from atlas_api.db import engine
+        from sqlalchemy import text
+
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception:
+        checks["database"] = "unavailable"
+        all_ok = False
+
+    from fastapi.responses import JSONResponse
+
+    status_code = 200 if all_ok else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "ok" if all_ok else "degraded",
+            "checks": checks,
+            "timestamp": time.time(),
+        },
+    )

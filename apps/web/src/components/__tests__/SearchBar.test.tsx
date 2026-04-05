@@ -12,11 +12,28 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SearchBar } from '@/components/search/search-bar'
 
+const pushMock = vi.fn()
+let mockSearchQuery = ''
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: pushMock,
+  }),
+  useSearchParams: () => ({
+    get: (key: string) => (key === 'q' ? mockSearchQuery : null),
+  }),
+}))
+
 describe('SearchBar', () => {
+  beforeEach(() => {
+    pushMock.mockReset()
+    mockSearchQuery = ''
+  })
+
   describe('Rendering', () => {
     it('should render search input', () => {
       // TODO: Implement
@@ -41,13 +58,22 @@ describe('SearchBar', () => {
       // - Assert input value updates
     })
 
-    it('should debounce input', async () => {
-      // TODO: Implement
-      // - Mock onSearch callback
-      // - Type "research" character by character
-      // - Assert onSearch not called immediately
-      // - Wait for debounce delay (typically 300ms)
-      // - Assert onSearch called once with "research"
+    it('should submit on form submit', async () => {
+      const user = userEvent.setup()
+
+      render(<SearchBar />)
+
+      const input = screen.getByPlaceholderText('Search vault notes...')
+      await user.type(input, 'research')
+
+      // Not yet submitted — push not called
+      expect(pushMock).not.toHaveBeenCalled()
+
+      // Submit the form via Enter
+      await user.keyboard('{Enter}')
+
+      expect(pushMock).toHaveBeenCalledTimes(1)
+      expect(pushMock).toHaveBeenCalledWith('/dashboard/search?q=research')
     })
 
     it('should clear input on clear button click', async () => {

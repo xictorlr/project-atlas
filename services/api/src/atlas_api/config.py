@@ -64,5 +64,45 @@ class Settings(BaseSettings):
     otel_exporter_otlp_endpoint: str = Field(default="")
     otel_service_name: str = Field(default="atlas-api")
 
+    # ── Integration feature flags ──────────────────────────────────────────────
+    # Obsidian sync is enabled by default (core workflow).
+    # All third-party adapters default to disabled.
+
+    obsidian_sync_enabled: bool = Field(
+        default=True,
+        description="Enable Obsidian vault sync and export endpoints (ATLAS_OBSIDIAN_SYNC_ENABLED)",
+    )
+
+    deerflow_enabled: bool = Field(
+        default=False,
+        description="Enable DeerFlow agent orchestration adapter (ATLAS_DEERFLOW_ENABLED)",
+    )
+    deerflow_base_url: str = Field(
+        default="",
+        description="DeerFlow API base URL",
+    )
+    deerflow_api_key: str = Field(
+        default="",
+        description="DeerFlow API key — keep secret",
+    )
+
+    hermes_enabled: bool = Field(
+        default=False,
+        description="Enable Hermes memory bridge adapter (ATLAS_HERMES_ENABLED)",
+    )
+    hermes_context_ttl_seconds: int = Field(
+        default=3600,
+        description="TTL for Hermes context entries in Redis",
+    )
+
+    mirofish_enabled: bool = Field(
+        default=False,
+        description="Enable MiroFish simulation gateway — isolated, requires confirmation (ATLAS_MIROFISH_ENABLED)",
+    )
+    mirofish_require_confirmation: bool = Field(
+        default=True,
+        description="Require explicit confirmation header before running simulations",
+    )
+
 
 settings = Settings()
