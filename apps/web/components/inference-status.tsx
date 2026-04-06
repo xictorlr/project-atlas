@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Cpu } from "lucide-react";
 import { getInferenceHealth, type InferenceHealth } from "@/lib/api";
@@ -36,7 +37,11 @@ export function InferenceStatus() {
   const ollamaUp = !error && (health?.ollamaReachable ?? false);
 
   return (
-    <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-xs">
+    <Link
+      href="/settings/models"
+      className="flex items-center gap-2 rounded-md border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent"
+      title="Manage models"
+    >
       <Cpu className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 
       {/* Ollama status dot */}
@@ -70,6 +75,6 @@ export function InferenceStatus() {
       <span className="ml-1 rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">
         Edge Mode
       </span>
-    </div>
+    </Link>
   );
 }

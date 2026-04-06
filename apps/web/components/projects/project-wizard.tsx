@@ -82,23 +82,41 @@ export function ProjectWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      const { createProject } = await import("@/lib/api");
-      const slugified = name
+      const { createProject, createSource } = await import("@/lib/api");
+      const slugified = state.name
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
+
+      // 1. Create the workspace
       const result = await createProject({
-        name: name.trim(),
+        name: state.name.trim(),
         slug: slugified,
-        description: description.trim() || undefined,
-        client: client.trim() || undefined,
-        language,
+        description: state.description.trim() || undefined,
+        client: state.client.trim() || undefined,
+        language: state.language,
       });
-      if (!result.success) {
+      if (!result.success || !result.data) {
         setError(result.error || "Failed to create project");
         return;
       }
+
+      const workspaceId = (result.data as { id: string }).id;
+
+      // 2. Upload any queued files
+      for (const upload of state.files) {
+        const formData = new FormData();
+        formData.append("file", upload.file);
+        formData.append("title", upload.file.name);
+        formData.append("kind", _categoryToKind(upload.type));
+        const uploadResult = await createSource(workspaceId, formData);
+        if (!uploadResult.success) {
+          // Log but don't block — partial upload is acceptable
+          console.warn(`Failed to upload ${upload.file.name}: ${uploadResult.error}`);
+        }
+      }
+
       router.push("/projects");
       router.refresh();
     } catch (err: unknown) {
@@ -106,6 +124,20 @@ export function ProjectWizard() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function _categoryToKind(category: string): string {
+    const map: Record<string, string> = {
+      audio: "audio",
+      pdf: "pdf",
+      image: "image",
+      word: "docx",
+      excel: "xlsx",
+      powerpoint: "pptx",
+      markdown: "article",
+      text: "article",
+    };
+    return map[category] ?? "article";
   }
 
   return (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, FileText, Mic, Image, FileSpreadsheet, Zap, Search, BookOpen, Wrench } from "lucide-react";
+import { Plus, FileText, Mic, Image, FileSpreadsheet, Zap, Search, BookOpen, Wrench, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -122,6 +122,10 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
             <Wrench className="h-3.5 w-3.5" />
             Tools
           </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-1.5">
+            <Settings className="h-3.5 w-3.5" />
+            Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sources" className="mt-4">
@@ -142,6 +146,10 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
 
         <TabsContent value="tools" className="mt-4">
           <ToolsTabContent projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-4">
+          <ProjectSettingsTabContent projectId={id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -265,6 +273,35 @@ function ToolsTabContent({ projectId }: { projectId: string }) {
         color="text-amber-600"
         premium
       />
+    </div>
+  );
+}
+
+function ProjectSettingsTabContent({ projectId }: { projectId: string }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="font-semibold">Project Settings</h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <QuickActionCard
+          href={`/settings/models`}
+          title="Model Management"
+          description="Configure which Ollama model is used for compilation and output generation."
+          color="text-blue-600"
+        />
+        <QuickActionCard
+          href={`/settings`}
+          title="General Settings"
+          description="Workspace defaults, export paths, and global preferences."
+          color="text-muted-foreground"
+        />
+      </div>
+      <div className="rounded-lg border border-dashed p-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Project-level settings for{" "}
+          <code className="text-xs">{projectId}</code> — language, output
+          templates, and pipeline options — load here once wired to the API.
+        </p>
+      </div>
     </div>
   );
 }

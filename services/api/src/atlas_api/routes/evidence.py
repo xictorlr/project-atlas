@@ -9,7 +9,7 @@ from atlas_api.config import settings
 from atlas_api.models.evidence import EvidencePack
 from atlas_api.search.evidence import build_evidence_pack
 from atlas_api.search.indexer import get_or_build_index
-from atlas_api.search.query import execute_search
+from atlas_api.search.query import execute_search_lexical as execute_search
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/evidence",

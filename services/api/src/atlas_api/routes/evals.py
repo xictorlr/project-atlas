@@ -70,11 +70,11 @@ def _make_search_fn(k: int):
 
     def _search(query: str, workspace_id: str, _k: int) -> list[str]:
         from atlas_api.search.indexer import get_or_build_index
-        from atlas_api.search.query import execute_search
+        from atlas_api.search.query import execute_search_lexical
 
         vault_root = Path(settings.vault_path) / workspace_id
         idx = get_or_build_index(vault_root, workspace_id)
-        hits = execute_search(idx, query, limit=_k)
+        hits = execute_search_lexical(idx, query, limit=_k)
         return [h.slug for h in hits]
 
     return _search
