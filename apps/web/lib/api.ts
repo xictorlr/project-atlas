@@ -307,4 +307,30 @@ export function getInferenceHealth(): Promise<ApiResponse<InferenceHealth>> {
   return apiFetch<InferenceHealth>("/api/v1/health/inference");
 }
 
+// Chat — RAG-grounded Q&A about the project
+export interface ChatSource {
+  note_slug: string;
+  note_title: string;
+  passage: string;
+  relevance: number;
+}
+
+export interface ChatResponse {
+  answer: string;
+  sources: ChatSource[];
+  model: string;
+  confidence: number;
+}
+
+export function chatWithProject(
+  projectId: string,
+  question: string,
+  history: { role: string; content: string }[] = []
+): Promise<ApiResponse<ChatResponse>> {
+  return apiFetch<ChatResponse>(`/api/v1/workspaces/${projectId}/chat`, {
+    method: "POST",
+    body: JSON.stringify({ question, history }),
+  });
+}
+
 export { apiFetch, type ApiResponse };

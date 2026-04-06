@@ -11,6 +11,7 @@ import {
   BookOpen,
   Wrench,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -129,12 +130,20 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
           )}
         </div>
 
-        <Button asChild className="shrink-0">
-          <Link href={`/projects/${id}/sources/upload`}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add Sources
-          </Link>
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/projects/${id}/chat`}>
+              <MessageSquare className="mr-1.5 h-4 w-4" />
+              Chat
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/projects/${id}/sources/upload`}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Sources
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Source counts summary */}

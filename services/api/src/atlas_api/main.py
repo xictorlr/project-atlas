@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from atlas_api.config import settings
 from atlas_api.routes import (
+    chat,
     evals,
     evidence,
     health,
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(health.inference_router)
 app.include_router(health.models_router)
+app.include_router(chat.router)
 
 # ── v1 API routes ────────────────────────────────────────────────────────────
 API_PREFIX = "/api/v1"
