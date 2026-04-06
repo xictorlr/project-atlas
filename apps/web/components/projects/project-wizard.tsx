@@ -82,10 +82,25 @@ export function ProjectWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      // Placeholder — the API call is stubbed until the backend is ready.
-      // In production: await createProject({ name, slug, client, description, language })
-      await new Promise((r) => setTimeout(r, 800));
+      const { createProject } = await import("@/lib/api");
+      const slugified = name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      const result = await createProject({
+        name: name.trim(),
+        slug: slugified,
+        description: description.trim() || undefined,
+        client: client.trim() || undefined,
+        language,
+      });
+      if (!result.success) {
+        setError(result.error || "Failed to create project");
+        return;
+      }
       router.push("/projects");
+      router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create project");
     } finally {

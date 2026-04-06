@@ -98,8 +98,8 @@ Week 8:  Generate final project brief
 
 | Tool | What it does | Runs on |
 |------|-------------|---------|
-| **DeerFlow** | Multi-step research against your vault — decomposes questions, searches, synthesizes | Gemma 4 27B |
-| **Hermes** | Session memory — remembers what you were working on last time | Gemma 4 12B + Redis |
+| **DeerFlow** | Multi-step research against your vault — decomposes questions, searches, synthesizes | Gemma 4 26B (MoE) |
+| **Hermes** | Session memory — remembers what you were working on last time | Gemma 4 (e4b) + Redis |
 | **MiroFish** | What-if simulation — "What if we delay launch by 4 weeks?" | Qwen 3.5 (deep reasoning) |
 
 All three run locally against Ollama + vault RAG. No cloud calls.
@@ -219,8 +219,8 @@ Choose based on your hardware:
 
 | Profile | RAM | Synthesis Model | Best For |
 |---------|-----|----------------|----------|
-| `light` | 16GB | Gemma 4 12B | Quick extraction, basic summaries |
-| `standard` | 32GB | Gemma 4 27B | Full pipeline — **recommended** |
+| `light` | 16GB | Gemma 4 (e4b) | Quick extraction, basic summaries |
+| `standard` | 32GB | Gemma 4 26B (MoE) | Full pipeline — **recommended** |
 | `reasoning` | 32GB+ | Qwen 3.5 27B Claude-distilled | Deep analysis, simulations |
 | `polyglot` | 32GB | Qwen 3 30B (100+ languages) | Multi-language projects |
 | `maximum` | 64GB+ | Qwen 2.5 72B | No compromises |

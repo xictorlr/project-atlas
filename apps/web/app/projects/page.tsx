@@ -3,44 +3,39 @@ import { Plus, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { InferenceStatus } from "@/components/inference-status";
+import { getProjects } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-// Placeholder project data — replace with getProjects() API call once backend is ready
-const MOCK_PROJECTS: ProjectCardData[] = [
-  {
-    id: "proj-1",
-    name: "Acme Corp Market Analysis",
-    slug: "acme-market-analysis",
-    client: "Acme Corp",
-    description: "Competitive landscape and market sizing for LATAM expansion.",
-    sourceCounts: { audio: 3, pdf: 12, office: 4 },
-    pipelineStatus: "done",
-    lastActivityAt: new Date(Date.now() - 86_400_000).toISOString(),
-  },
-  {
-    id: "proj-2",
-    name: "Meridian Digital Transformation",
-    slug: "meridian-digital",
-    client: "Meridian Group",
-    description: "ERP migration roadmap and change management strategy.",
-    sourceCounts: { pdf: 7, office: 6, image: 2 },
-    pipelineStatus: "running",
-    lastActivityAt: new Date(Date.now() - 3_600_000).toISOString(),
-  },
-  {
-    id: "proj-3",
-    name: "Q1 Strategy Review",
-    slug: "q1-strategy",
-    description: "Internal strategy review and OKR alignment.",
+interface WorkspaceFromAPI {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function workspaceToCard(ws: WorkspaceFromAPI): ProjectCardData {
+  return {
+    id: ws.id,
+    name: ws.name,
+    slug: ws.slug,
+    client: undefined,
+    description: ws.description ?? undefined,
     sourceCounts: {},
     pipelineStatus: "idle",
-    lastActivityAt: undefined,
-  },
-];
+    lastActivityAt: ws.updated_at,
+  };
+}
 
-export default function ProjectsPage() {
-  const projects = MOCK_PROJECTS;
+export default async function ProjectsPage() {
+  const response = await getProjects();
+  const projects: ProjectCardData[] =
+    response.success && response.data
+      ? (response.data as unknown as WorkspaceFromAPI[]).map(workspaceToCard)
+      : [];
+  const apiError = !response.success ? response.error : null;
 
   return (
     <div className="space-y-6">
@@ -62,6 +57,12 @@ export default function ProjectsPage() {
           </Button>
         </div>
       </div>
+
+      {apiError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          API error: {apiError}
+        </div>
+      )}
 
       {/* Grid */}
       {projects.length > 0 ? (

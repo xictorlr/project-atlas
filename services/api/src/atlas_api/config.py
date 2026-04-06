@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     # App
     environment: str = Field(default="development")
     log_level: str = Field(default="info")
-    cors_origins: list[str] = Field(default=["http://localhost:3000"])
+    cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:3001"])
 
     # Vault
     vault_path: str = Field(
@@ -55,10 +55,18 @@ class Settings(BaseSettings):
         description="Absolute or relative path to the Markdown vault directory",
     )
 
-    # LLM
-    anthropic_api_key: str = Field(default="")
-    openai_api_key: str = Field(default="")
-    default_llm_model: str = Field(default="claude-sonnet-4-6")
+    # Inference — edge-first (Ollama local, no cloud APIs)
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Ollama REST API URL",
+    )
+    ollama_default_model: str = Field(default="gemma4:26b")
+    ollama_embedding_model: str = Field(default="nomic-embed-text")
+
+    # Adapter models (each adapter can use a different model)
+    deerflow_model: str = Field(default="gemma4:26b")
+    hermes_model: str = Field(default="gemma4")
+    mirofish_model: str = Field(default="gemma4:26b")
 
     # Observability
     otel_exporter_otlp_endpoint: str = Field(default="")
@@ -74,8 +82,8 @@ class Settings(BaseSettings):
     )
 
     deerflow_enabled: bool = Field(
-        default=False,
-        description="Enable DeerFlow agent orchestration adapter (ATLAS_DEERFLOW_ENABLED)",
+        default=True,
+        description="Enable DeerFlow local research adapter (ATLAS_DEERFLOW_ENABLED)",
     )
     deerflow_base_url: str = Field(
         default="",
@@ -87,8 +95,8 @@ class Settings(BaseSettings):
     )
 
     hermes_enabled: bool = Field(
-        default=False,
-        description="Enable Hermes memory bridge adapter (ATLAS_HERMES_ENABLED)",
+        default=True,
+        description="Enable Hermes local session memory adapter (ATLAS_HERMES_ENABLED)",
     )
     hermes_context_ttl_seconds: int = Field(
         default=3600,

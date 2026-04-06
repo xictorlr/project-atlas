@@ -39,6 +39,8 @@ app.add_middleware(
 
 # ── ops routes (no version prefix) ──────────────────────────────────────────
 app.include_router(health.router)
+app.include_router(health.inference_router)
+app.include_router(health.models_router)
 
 # ── v1 API routes ────────────────────────────────────────────────────────────
 API_PREFIX = "/api/v1"

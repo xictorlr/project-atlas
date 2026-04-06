@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 async def on_startup(ctx: dict[str, Any]) -> None:
-    """Initialize the InferenceRouter and attach to worker context."""
+    """Initialize InferenceRouter and RAGPipeline, attach to worker context."""
+    from atlas_worker.search.rag import RAGPipeline
+    from atlas_worker.search.vector_store import PgVectorStore
+
     router = InferenceRouter.from_config(worker_settings)
     health = await router.health()
     logger.info(
@@ -26,6 +29,18 @@ async def on_startup(ctx: dict[str, Any]) -> None:
         health.overall_status,
     )
     ctx["router"] = router
+
+    # RAG pipeline — needed by generate_output and adapters
+    try:
+        vector_store = PgVectorStore(worker_settings.database_url)
+        rag = RAGPipeline(vector_store=vector_store, router=router)
+        ctx["rag"] = rag
+        logger.info("RAGPipeline ready")
+    except Exception as exc:
+        logger.warning("RAGPipeline not available: %s — output generation will be limited", exc)
+
+    # Vault root path
+    ctx["vault_root"] = worker_settings.root / "vault"
 
 
 async def on_shutdown(ctx: dict[str, Any]) -> None:
