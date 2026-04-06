@@ -13,32 +13,24 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { getInferenceHealth, type ModelInfo, type InferenceHealth } from "@/lib/api";
+import { getInferenceHealth, getModels, type ModelInfo, type InferenceHealth } from "@/lib/api";
 
-// ---------------------------------------------------------------------------
-// Mock data — replace with real API calls once endpoints are wired
-// ---------------------------------------------------------------------------
+interface ApiModel {
+  name: string;
+  size_gb: number;
+  family?: string;
+  quantization?: string;
+  modified_at?: string;
+}
 
-const MOCK_MODELS: ModelInfo[] = [
-  {
-    name: "llama3.2:3b",
-    size: 2_019_686_400,
-    digest: "a80c4f17acd5",
-    modifiedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
-  },
-  {
-    name: "mistral:7b",
-    size: 4_113_301_504,
-    digest: "61e88e884507",
-    modifiedAt: new Date(Date.now() - 7 * 86_400_000).toISOString(),
-  },
-  {
-    name: "qwen2.5:14b",
-    size: 9_053_000_000,
-    digest: "3b5f40f5f2cf",
-    modifiedAt: new Date(Date.now() - 1 * 86_400_000).toISOString(),
-  },
-];
+function apiModelToInfo(m: ApiModel): ModelInfo {
+  return {
+    name: m.name,
+    size: Math.round(m.size_gb * 1_073_741_824),
+    digest: m.quantization ?? "",
+    modifiedAt: m.modified_at ?? new Date().toISOString(),
+  };
+}
 
 interface ModelProfile {
   id: string;
@@ -52,37 +44,36 @@ const MODEL_PROFILES: ModelProfile[] = [
   {
     id: "light",
     label: "Light",
-    description: "Fast responses for quick queries and chat. Uses 3–4 B models.",
-    recommendedModel: "llama3.2:3b",
+    description: "16GB RAM — Gemma 4 (e4b, 9.6 GB) for fast extraction and summaries.",
+    recommendedModel: "gemma4",
     color: "bg-green-100 text-green-800 border-green-200",
   },
   {
     id: "standard",
     label: "Standard",
-    description: "Balanced speed and quality for most compilation tasks. Uses 7 B models.",
-    recommendedModel: "mistral:7b",
+    description: "32GB RAM — Gemma 4 26B MoE for the full pipeline (recommended).",
+    recommendedModel: "gemma4:26b",
     color: "bg-blue-100 text-blue-800 border-blue-200",
   },
   {
     id: "reasoning",
     label: "Reasoning",
-    description: "Deep analysis and structured outputs. Uses 14 B models.",
-    recommendedModel: "qwen2.5:14b",
+    description: "Deep analysis for MiroFish simulations and contradiction detection.",
+    recommendedModel: "gemma4:26b",
     color: "bg-indigo-100 text-indigo-800 border-indigo-200",
   },
   {
     id: "polyglot",
     label: "Polyglot",
-    description: "Multilingual source processing — Spanish, English, and more.",
-    recommendedModel: "qwen2.5:14b",
+    description: "Multi-language projects (Spanish, English, Portuguese, French).",
+    recommendedModel: "gemma4:26b",
     color: "bg-amber-100 text-amber-800 border-amber-200",
   },
   {
     id: "maximum",
     label: "Maximum",
-    description:
-      "Highest quality for final deliverables. Uses 30 B+ models (requires significant GPU VRAM).",
-    recommendedModel: "llama3.1:70b",
+    description: "64GB+ RAM — largest models available for maximum quality.",
+    recommendedModel: "gemma4:26b",
     color: "bg-purple-100 text-purple-800 border-purple-200",
   },
 ];
@@ -278,7 +269,8 @@ function ModelRow({
 // ---------------------------------------------------------------------------
 
 export default function ModelsPage() {
-  const [models, setModels] = useState<ModelInfo[]>(MOCK_MODELS);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [loadingModels, setLoadingModels] = useState(true);
   const [health, setHealth] = useState<InferenceHealth | null>(null);
   const [healthError, setHealthError] = useState(false);
   const [pullInput, setPullInput] = useState("");
@@ -286,6 +278,20 @@ export default function ModelsPage() {
   const [activeProfile, setActiveProfile] = useState("standard");
 
   const { progress, pulling, pullError, startPull } = useMockPull();
+
+  async function loadModels() {
+    setLoadingModels(true);
+    try {
+      const res = await getModels();
+      if (res.success && res.data) {
+        const payload = res.data as unknown as { models?: ApiModel[] };
+        const list = Array.isArray(payload) ? (payload as ApiModel[]) : payload.models ?? [];
+        setModels(list.map(apiModelToInfo));
+      }
+    } finally {
+      setLoadingModels(false);
+    }
+  }
 
   useEffect(() => {
     async function loadHealth() {
@@ -302,34 +308,25 @@ export default function ModelsPage() {
       }
     }
     void loadHealth();
+    void loadModels();
   }, []);
 
   function handlePull() {
     if (!pullInput.trim() || pulling) return;
     startPull(pullInput.trim());
-    // In production: call pullModel(pullInput.trim()) and stream progress
-    // For now, mock model is added after "pull" completes
-    const newName = pullInput.trim();
     setTimeout(() => {
-      setModels((prev) => {
-        if (prev.some((m) => m.name === newName)) return prev;
-        const newModel: ModelInfo = {
-          name: newName,
-          size: Math.round(Math.random() * 8_000_000_000 + 2_000_000_000),
-          digest: Math.random().toString(16).slice(2, 14),
-          modifiedAt: new Date().toISOString(),
-        };
-        return [...prev, newModel];
-      });
+      void loadModels();
       setPullInput("");
-    }, 4_500);
+    }, 5_000);
   }
 
   function handleDelete(name: string) {
+    // Delete endpoint not yet wired — local state only
     setModels((prev) => prev.filter((m) => m.name !== name));
   }
 
-  const ollamaUp = !healthError && (health?.ollamaReachable ?? false);
+  const healthPayload = health as unknown as { ollama_running?: boolean } | null;
+  const ollamaUp = !healthError && (healthPayload?.ollama_running ?? false);
 
   return (
     <div className="space-y-8">

@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 async def on_startup(ctx: dict[str, Any]) -> None:
-    """Initialize InferenceRouter and RAGPipeline, attach to worker context."""
+    """Initialize InferenceRouter, PG pool, RAGPipeline. Attach to worker context."""
+    import asyncpg
     from atlas_worker.search.rag import RAGPipeline
     from atlas_worker.search.vector_store import PgVectorStore
 
@@ -29,6 +30,16 @@ async def on_startup(ctx: dict[str, Any]) -> None:
         health.overall_status,
     )
     ctx["router"] = router
+
+    # PostgreSQL pool for direct queries (sources, jobs)
+    # Convert async SQLAlchemy URL to plain asyncpg DSN
+    db_url = worker_settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+    try:
+        pg_pool = await asyncpg.create_pool(db_url, min_size=1, max_size=5)
+        ctx["pg_pool"] = pg_pool
+        logger.info("PostgreSQL pool ready")
+    except Exception as exc:
+        logger.error("Failed to create PG pool: %s", exc)
 
     # RAG pipeline — needed by generate_output and adapters
     try:
@@ -49,6 +60,9 @@ async def on_shutdown(ctx: dict[str, Any]) -> None:
     if router:
         router.unload_all()
         await router.close()
+    pool = ctx.get("pg_pool")
+    if pool:
+        await pool.close()
     logger.info("Worker shutdown complete")
 
 

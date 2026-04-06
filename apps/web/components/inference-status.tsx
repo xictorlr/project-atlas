@@ -3,20 +3,32 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Cpu } from "lucide-react";
-import { getInferenceHealth, type InferenceHealth } from "@/lib/api";
+import { getInferenceHealth } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const POLL_INTERVAL_MS = 30_000;
 
+interface InferenceHealthPayload {
+  ollama_running?: boolean;
+  ollama_url?: string;
+  models_available?: string[];
+  models_required?: string[];
+  models_missing?: string[];
+  default_model?: string;
+  embedding_model?: string;
+  status?: string;
+  error?: string;
+}
+
 export function InferenceStatus() {
-  const [health, setHealth] = useState<InferenceHealth | null>(null);
+  const [health, setHealth] = useState<InferenceHealthPayload | null>(null);
   const [error, setError] = useState(false);
 
   async function fetchHealth() {
     try {
       const res = await getInferenceHealth();
       if (res.success && res.data) {
-        setHealth(res.data);
+        setHealth(res.data as unknown as InferenceHealthPayload);
         setError(false);
       } else {
         setError(true);
@@ -34,7 +46,9 @@ export function InferenceStatus() {
 
   if (!health && !error) return null;
 
-  const ollamaUp = !error && (health?.ollamaReachable ?? false);
+  const ollamaUp = !error && (health?.ollama_running ?? false);
+  const activeModel = health?.default_model;
+  const modelCount = health?.models_available?.length ?? 0;
 
   return (
     <Link
@@ -44,7 +58,6 @@ export function InferenceStatus() {
     >
       <Cpu className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 
-      {/* Ollama status dot */}
       <span className="flex items-center gap-1">
         <span
           className={cn(
@@ -56,24 +69,22 @@ export function InferenceStatus() {
         Ollama
       </span>
 
-      {ollamaUp && health?.activeModel && (
+      {ollamaUp && activeModel && (
         <>
           <span className="text-muted-foreground">·</span>
-          <span className="font-medium">{health.activeModel}</span>
+          <span className="font-medium">{activeModel}</span>
         </>
       )}
 
-      {ollamaUp && health?.gpuMemoryMb != null && (
+      {ollamaUp && modelCount > 0 && (
         <>
           <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground">
-            {Math.round(health.gpuMemoryMb / 1024)} GB GPU
-          </span>
+          <span className="text-muted-foreground">{modelCount} models</span>
         </>
       )}
 
       <span className="ml-1 rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">
-        Edge Mode
+        Edge
       </span>
     </Link>
   );

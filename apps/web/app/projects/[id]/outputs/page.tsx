@@ -2,6 +2,7 @@ import { Sparkles } from "lucide-react";
 import { OutputCard, type OutputCardData } from "@/components/outputs/output-card";
 import { OutputGenerator } from "@/components/outputs/output-generator";
 import { OutputArtifactKind } from "@atlas/shared";
+import { getOutputs } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -9,38 +10,46 @@ interface OutputsPageProps {
   params: Promise<{ id: string }>;
 }
 
-// Placeholder data — replace with getOutputs(projectId) in production
-const MOCK_OUTPUTS: OutputCardData[] = [
-  {
-    id: "out-1",
-    title: "LATAM Market Sizing — Status Report Week 12",
-    kind: OutputArtifactKind.StatusReport,
-    modelUsed: "llama3.2",
-    createdAt: new Date(Date.now() - 172_800_000).toISOString(),
-    preview:
-      "This week's analysis confirms that Brazil and Mexico represent 67% of the addressable market. Key risks include regulatory complexity in Colombia…",
-  },
-  {
-    id: "out-2",
-    title: "Acme Corp Executive Brief — Q4 2025",
-    kind: OutputArtifactKind.ClientBrief,
-    modelUsed: "llama3.1:70b",
-    createdAt: new Date(Date.now() - 86_400_000).toISOString(),
-    preview:
-      "Executive summary of competitive positioning and recommended go-to-market strategy for LATAM expansion phase one.",
-  },
-  {
-    id: "out-3",
-    title: "Risk Register v2",
-    kind: OutputArtifactKind.RiskRegister,
-    createdAt: new Date(Date.now() - 43_200_000).toISOString(),
-    preview: "Updated risk register with 14 identified risks, 3 critical, 6 high.",
-  },
-];
+interface NoteFromAPI {
+  slug: string;
+  title?: string;
+  type?: string;
+  output_kind?: string;
+  model?: string;
+  generated_at?: string;
+  created_at?: string;
+  preview?: string;
+}
+
+function noteToOutputCard(note: NoteFromAPI): OutputCardData {
+  const kindMap: Record<string, string> = {
+    status_report: OutputArtifactKind.StatusReport,
+    client_brief: OutputArtifactKind.ClientBrief,
+    weekly_digest: OutputArtifactKind.WeeklyDigest,
+    risk_register: OutputArtifactKind.RiskRegister,
+    raci_matrix: OutputArtifactKind.RaciMatrix,
+    followup_email: OutputArtifactKind.FollowupEmail,
+    mermaid_diagram: OutputArtifactKind.MermaidDiagram,
+    custom: OutputArtifactKind.Custom,
+  };
+  const kind = (note.output_kind && kindMap[note.output_kind]) || OutputArtifactKind.Brief;
+  return {
+    id: note.slug,
+    title: note.title || note.slug,
+    kind: kind as OutputArtifactKind,
+    modelUsed: note.model,
+    createdAt: note.generated_at || note.created_at || new Date().toISOString(),
+    preview: note.preview || "",
+  };
+}
 
 export default async function OutputsPage({ params }: OutputsPageProps) {
   const { id } = await params;
-  const outputs = MOCK_OUTPUTS;
+  const response = await getOutputs(id);
+  const outputs: OutputCardData[] =
+    response.success && Array.isArray(response.data)
+      ? (response.data as unknown as NoteFromAPI[]).map(noteToOutputCard)
+      : [];
 
   return (
     <div className="space-y-6">

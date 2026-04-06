@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { submitMiroFishScenario } from "@/lib/api";
 
 interface SimulationEntry {
   id: string;
@@ -42,10 +43,18 @@ export function MiroFishPanel({ projectId: _projectId, onSubmit }: MiroFishPanel
       if (onSubmit) {
         result = await onSubmit(_projectId, s);
       } else {
-        // Stub — replace with actual API call in production
-        await new Promise((r) => setTimeout(r, 1500));
+        const response = await submitMiroFishScenario(_projectId, s);
+        if (!response.success) {
+          throw new Error(
+            response.error?.includes("404")
+              ? "MiroFish is currently disabled. Enable it via ATLAS_MIROFISH_ENABLED=true."
+              : response.error || "Simulation failed"
+          );
+        }
+        const job = response.data as unknown as { jobId?: string; status?: string; result?: string };
         result =
-          "**Simulation queued.** MiroFish will model the scenario and produce a structured what-if analysis. Results will appear here once the simulation job completes.";
+          job?.result ||
+          `**Simulation queued.** Job ID: \`${job?.jobId ?? "unknown"}\`. Status: ${job?.status ?? "queued"}. Results will appear in vault/outputs/ once the chain-of-thought reasoning completes.`;
       }
 
       setHistory((prev) => [

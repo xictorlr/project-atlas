@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OutputArtifactKind } from "@atlas/shared";
+import { generateOutput } from "@/lib/api";
 
 const OUTPUT_TYPES = [
   { value: OutputArtifactKind.StatusReport, label: "Status Report" },
@@ -19,9 +20,8 @@ const OUTPUT_TYPES = [
 
 const MODEL_OPTIONS = [
   { value: "default", label: "Default (project model)" },
-  { value: "llama3.2", label: "Llama 3.2 (fast)" },
-  { value: "llama3.1:70b", label: "Llama 3.1 70B (accurate)" },
-  { value: "mistral", label: "Mistral" },
+  { value: "gemma4", label: "Gemma 4 (e4b — fast)" },
+  { value: "gemma4:26b", label: "Gemma 4 26B MoE (accurate)" },
 ];
 
 interface OutputGeneratorProps {
@@ -45,8 +45,13 @@ export function OutputGenerator({ projectId: _projectId, onSubmit }: OutputGener
       if (onSubmit) {
         await onSubmit(kind, instructions, model);
       } else {
-        // Placeholder stub — API call goes here in production
-        await new Promise((r) => setTimeout(r, 1000));
+        const response = await generateOutput(_projectId, kind, {
+          instructions: instructions || undefined,
+          model: model === "default" ? undefined : model,
+        });
+        if (!response.success) {
+          throw new Error(response.error || "Generation failed");
+        }
       }
       setSuccess(true);
       setInstructions("");

@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { submitDeerFlowQuery } from "@/lib/api";
 
 interface QueryEntry {
   id: string;
@@ -37,10 +38,14 @@ export function DeerFlowPanel({ projectId: _projectId, onSubmit }: DeerFlowPanel
       if (onSubmit) {
         result = await onSubmit(_projectId, q);
       } else {
-        // Stub — replace with actual API call in production
-        await new Promise((r) => setTimeout(r, 1200));
+        const response = await submitDeerFlowQuery(_projectId, q);
+        if (!response.success) {
+          throw new Error(response.error || "DeerFlow request failed");
+        }
+        const job = response.data as unknown as { jobId?: string; status?: string; result?: string };
         result =
-          "**Research queued.** Results will be compiled and added to the vault once the DeerFlow job completes. Check the Jobs tab for progress.";
+          job?.result ||
+          `**Research submitted.** Job ID: \`${job?.jobId ?? "unknown"}\`. Status: ${job?.status ?? "queued"}. Results will appear in vault/outputs/ once compilation completes.`;
       }
 
       setHistory((prev) => [

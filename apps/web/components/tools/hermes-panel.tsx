@@ -1,56 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MessageCircle, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { ContextEntry } from "@/lib/api";
+import { getHermesContext, clearHermesContext, type ContextEntry } from "@/lib/api";
 
 interface HermesPanelProps {
   projectId: string;
-  initialContext?: ContextEntry[];
-  onResume?: (projectId: string) => Promise<void>;
-  onClear?: (projectId: string) => Promise<void>;
 }
 
-const MOCK_CONTEXT: ContextEntry[] = [
-  {
-    id: "ctx-1",
-    role: "user",
-    content: "What are the main risks in phase 2 of the Acme project?",
-    createdAt: new Date(Date.now() - 3600_000).toISOString(),
-  },
-  {
-    id: "ctx-2",
-    role: "assistant",
-    content:
-      "The main risks in phase 2 include: (1) supplier lead times for critical components, (2) integration complexity with the legacy ERP, and (3) stakeholder availability for sign-off workshops.",
-    createdAt: new Date(Date.now() - 3590_000).toISOString(),
-  },
-];
-
-export function HermesPanel({
-  projectId: _projectId,
-  initialContext,
-  onResume,
-  onClear,
-}: HermesPanelProps) {
-  const [context] = useState<ContextEntry[]>(initialContext ?? MOCK_CONTEXT);
+export function HermesPanel({ projectId }: HermesPanelProps) {
+  const [context, setContext] = useState<ContextEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [resuming, setResuming] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadContext = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getHermesContext(projectId);
+      if (response.success && response.data) {
+        setContext(Array.isArray(response.data) ? response.data : []);
+      } else if (!response.success) {
+        // Hermes might be disabled or have no context yet — soft error
+        setContext([]);
+        if (response.error && !response.error.includes("Not found")) {
+          setError(response.error);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load context");
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    loadContext();
+  }, [loadContext]);
 
   async function handleResume() {
     setResuming(true);
     setError(null);
     try {
-      if (onResume) {
-        await onResume(_projectId);
-      } else {
-        await new Promise((r) => setTimeout(r, 600));
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Resume failed");
+      await loadContext();
     } finally {
       setResuming(false);
     }
@@ -61,11 +57,11 @@ export function HermesPanel({
     setClearing(true);
     setError(null);
     try {
-      if (onClear) {
-        await onClear(_projectId);
-      } else {
-        await new Promise((r) => setTimeout(r, 600));
+      const response = await clearHermesContext(projectId);
+      if (!response.success) {
+        throw new Error(response.error || "Clear failed");
       }
+      setContext([]);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Clear failed");
     } finally {

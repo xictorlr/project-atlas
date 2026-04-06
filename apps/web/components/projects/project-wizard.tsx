@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MultiUploader, type UploadFile } from "@/components/sources/multi-uploader";
 import { cn } from "@/lib/utils";
+import { createProject, createSource } from "@/lib/api";
 
 interface WizardState {
   // Step 1
@@ -82,7 +83,6 @@ export function ProjectWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      const { createProject, createSource } = await import("@/lib/api");
       const slugified = state.name
         .toLowerCase()
         .trim()

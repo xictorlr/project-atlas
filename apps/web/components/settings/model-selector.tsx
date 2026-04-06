@@ -4,29 +4,24 @@ import { useEffect, useState } from "react";
 import { Cpu, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { type ModelInfo } from "@/lib/api";
+import { getModels, type ModelInfo } from "@/lib/api";
 
-// Mock data — replace with getModels() once the API endpoint is available
-const MOCK_MODELS: ModelInfo[] = [
-  {
-    name: "llama3.2:3b",
-    size: 2_019_686_400,
-    digest: "a80c4f17acd5",
-    modifiedAt: new Date().toISOString(),
-  },
-  {
-    name: "mistral:7b",
-    size: 4_113_301_504,
-    digest: "61e88e884507",
-    modifiedAt: new Date().toISOString(),
-  },
-  {
-    name: "qwen2.5:14b",
-    size: 9_053_000_000,
-    digest: "3b5f40f5f2cf",
-    modifiedAt: new Date().toISOString(),
-  },
-];
+interface ApiModel {
+  name: string;
+  size_gb: number;
+  family?: string;
+  quantization?: string;
+  modified_at?: string;
+}
+
+function apiModelToModelInfo(m: ApiModel): ModelInfo {
+  return {
+    name: m.name,
+    size: Math.round(m.size_gb * 1_073_741_824),
+    digest: m.quantization ?? "",
+    modifiedAt: m.modified_at ?? new Date().toISOString(),
+  };
+}
 
 function bytesToGb(bytes: number): string {
   return (bytes / 1_073_741_824).toFixed(1);
@@ -55,11 +50,13 @@ export function ModelSelector({
     async function loadModels() {
       setLoading(true);
       try {
-        // TODO: replace with real API call
-        // const res = await getModels();
-        // if (res.success && res.data) setModels(res.data);
-        await new Promise((r) => setTimeout(r, 200)); // simulate latency
-        setModels(MOCK_MODELS);
+        const res = await getModels();
+        if (res.success && res.data) {
+          // API returns { models: [...], total } not a raw array
+          const payload = res.data as unknown as { models?: ApiModel[] };
+          const list = Array.isArray(payload) ? (payload as ApiModel[]) : payload.models ?? [];
+          setModels(list.map(apiModelToModelInfo));
+        }
       } finally {
         setLoading(false);
       }

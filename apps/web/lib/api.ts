@@ -21,15 +21,33 @@ export async function createSource(
   workspaceId: string,
   formData: FormData
 ): Promise<ApiResponse<Source>> {
-  const res = await fetch(
-    `${BASE_URL}/api/v1/workspaces/${workspaceId}/sources`,
-    { method: "POST", body: formData }
-  );
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    return { success: false, error: text || res.statusText };
+  try {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/workspaces/${workspaceId}/sources/upload`,
+      { method: "POST", body: formData }
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      let errorMsg = res.statusText;
+      try {
+        const parsed = JSON.parse(text);
+        errorMsg = parsed.error || parsed.detail || text || res.statusText;
+      } catch {
+        errorMsg = text || res.statusText;
+      }
+      return { success: false, error: errorMsg };
+    }
+    const body = await res.json();
+    if (body && typeof body === "object" && "success" in body && ("data" in body || "error" in body)) {
+      return body as ApiResponse<Source>;
+    }
+    return { success: true, data: body as Source };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Network error",
+    };
   }
-  return (await res.json()) as ApiResponse<Source>;
 }
 
 export function deleteSource(
@@ -197,21 +215,36 @@ export function submitDeerFlowQuery(
   projectId: string,
   question: string
 ): Promise<ApiResponse<ToolJob>> {
-  return apiFetch<ToolJob>(`/api/v1/workspaces/${projectId}/tools/deerflow`, {
-    method: "POST",
-    body: JSON.stringify({ question }),
-  });
+  return apiFetch<ToolJob>(
+    `/api/v1/workspaces/${projectId}/integrations/deerflow/submit`,
+    {
+      method: "POST",
+      body: JSON.stringify({ question }),
+    }
+  );
 }
 
-// Tools — MiroFish
+export function getDeerFlowTask(
+  projectId: string,
+  taskId: string
+): Promise<ApiResponse<ToolJob>> {
+  return apiFetch<ToolJob>(
+    `/api/v1/workspaces/${projectId}/integrations/deerflow/tasks/${taskId}`
+  );
+}
+
+// Tools — MiroFish (currently feature-flagged off; endpoint may not exist yet)
 export function submitMiroFishScenario(
   projectId: string,
   scenario: string
 ): Promise<ApiResponse<ToolJob>> {
-  return apiFetch<ToolJob>(`/api/v1/workspaces/${projectId}/tools/mirofish`, {
-    method: "POST",
-    body: JSON.stringify({ scenario }),
-  });
+  return apiFetch<ToolJob>(
+    `/api/v1/workspaces/${projectId}/integrations/mirofish/submit`,
+    {
+      method: "POST",
+      body: JSON.stringify({ scenario }),
+    }
+  );
 }
 
 // Tools — Hermes
@@ -225,7 +258,18 @@ export interface ContextEntry {
 export function getHermesContext(
   projectId: string
 ): Promise<ApiResponse<ContextEntry[]>> {
-  return apiFetch<ContextEntry[]>(`/api/v1/workspaces/${projectId}/tools/hermes/context`);
+  return apiFetch<ContextEntry[]>(
+    `/api/v1/workspaces/${projectId}/integrations/hermes/context`
+  );
+}
+
+export function clearHermesContext(
+  projectId: string
+): Promise<ApiResponse<null>> {
+  return apiFetch<null>(
+    `/api/v1/workspaces/${projectId}/integrations/hermes/context`,
+    { method: "DELETE" }
+  );
 }
 
 // Models / Inference

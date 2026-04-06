@@ -130,16 +130,38 @@ async def ingest_source(ctx: dict[str, Any], source_id: str) -> dict[str, object
 # ---------------------------------------------------------------------------
 
 async def _load_source(ctx: dict[str, Any], source_id: str) -> dict[str, Any] | None:
-    """Return source record dict from DB, or None if not found.
+    """Load source record from DB. Returns None if not found.
 
-    When a real DB session is in ctx["db"], this should query it.
-    Currently returns a minimal stub so the job can run end-to-end in tests.
+    Uses ctx["pg_pool"] (asyncpg pool) injected at worker startup.
+    Falls back to ctx["db"] (test injection) for unit tests.
     """
     db = ctx.get("db")
     if db is not None:
-        # Real DB path — delegated to caller-injected session.
         return await db.get_source(source_id)  # type: ignore[return-value]
-    return None
+
+    pool = ctx.get("pg_pool")
+    if pool is None:
+        return None
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT id, workspace_id, kind, status, title,
+                      description, storage_key, manifest::text AS manifest
+               FROM sources WHERE id = $1""",
+            source_id,
+        )
+    if row is None:
+        return None
+
+    record = dict(row)
+    # Extract mime_type and origin_url from JSON manifest
+    import json as _json
+    manifest_raw = record.pop("manifest", None)
+    manifest = _json.loads(manifest_raw) if manifest_raw else {}
+    record["mime_type"] = manifest.get("mime_type")
+    record["origin_url"] = manifest.get("origin_url")
+    record["filename"] = (record["storage_key"] or "").rsplit("/", 1)[-1]
+    return record
 
 
 async def _update_source_status(
@@ -148,6 +170,16 @@ async def _update_source_status(
     db = ctx.get("db")
     if db is not None:
         await db.update_source_status(source_id, status)  # type: ignore[misc]
+        return
+
+    pool = ctx.get("pg_pool")
+    if pool is None:
+        return
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE sources SET status = $1, updated_at = now() WHERE id = $2",
+            status, source_id,
+        )
 
 
 async def _persist_manifest(
@@ -159,12 +191,46 @@ async def _persist_manifest(
     db = ctx.get("db")
     if db is not None:
         await db.update_source_manifest(source_id, manifest, title, "ready")  # type: ignore[misc]
+        return
+
+    pool = ctx.get("pg_pool")
+    if pool is None:
+        return
+    import json as _json
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """UPDATE sources
+               SET manifest = $1::json, title = COALESCE($2, title),
+                   status = 'ready', updated_at = now()
+               WHERE id = $3""",
+            _json.dumps(manifest), title, source_id,
+        )
 
 
 def _read_file(storage_key: str) -> bytes:
-    """Read raw bytes from a local path (storage_key is an absolute path for now)."""
-    with open(storage_key, "rb") as fh:
-        return fh.read()
+    """Read raw bytes by storage key.
+
+    The API saves files at <api-cwd>/storage/{workspace_id}/{source_id}/{filename}
+    Currently the API runs from services/api/, so storage is at
+    services/api/storage/. Worker can override via ATLAS_STORAGE_ROOT env var.
+    """
+    from pathlib import Path
+    import os
+
+    p = Path(storage_key)
+    if p.is_absolute():
+        return p.read_bytes()
+
+    # Try ATLAS_STORAGE_ROOT first, then default to <atlas_root>/services/api/storage
+    storage_root_env = os.environ.get("ATLAS_STORAGE_ROOT")
+    if storage_root_env:
+        storage_root = Path(storage_root_env)
+    else:
+        from atlas_worker.config import worker_settings
+        storage_root = worker_settings.root / "services" / "api" / "storage"
+
+    full_path = storage_root.resolve() / storage_key
+    return full_path.read_bytes()
 
 
 # ---------------------------------------------------------------------------
