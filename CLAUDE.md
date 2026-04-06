@@ -1,29 +1,35 @@
 # Project Atlas repository memory
 
 ## Mission
-A knowledge compiler web application that turns raw sources into a living Markdown wiki, searchable answers, reusable outputs, and scenario simulations.
+"El Consultor" — an edge-first knowledge compiler for consultants. Record meetings, upload documents, and Atlas compiles everything into a searchable Markdown vault with meeting minutes, summaries, action items, and client-ready reports. All inference runs locally via Ollama + MLX. Zero data leaves the machine.
 
 ## Product stance
-- Build a knowledge compiler, not a generic chat-over-docs toy.
+- Build a consultant's knowledge companion, not a generic chat-over-docs toy.
+- Edge-first: all inference runs on-device via Ollama (LLMs) + lightning-whisper-mlx (STT) + mlx-vlm (OCR). No cloud APIs.
 - Treat the Markdown vault as a first-class product artifact, not an export side effect.
 - Preserve provenance, citations, backlinks, and file stability so the vault stays useful in Obsidian.
 - Prefer deterministic pipelines for ingest, compilation, indexing, and publishing; use LLM judgment where synthesis is the point.
 - Default to reversible changes, append-only logs, and idempotent jobs.
+- Self-contained: all models, data, and uploads live in `.local/` inside the project directory.
 
 ## Core stack assumption
 - Monorepo with pnpm for JavaScript workspaces and uv for Python services.
 - apps/web: Next.js App Router, TypeScript, Tailwind, shadcn/ui.
 - services/api: FastAPI for domain APIs and auth-protected orchestration endpoints.
 - services/worker: Python job runners for ingest, compilation, indexing, export, and health checks.
-- PostgreSQL for relational state, object storage for source artifacts, Redis for queues and caching, local or remote vector store only if truly needed.
+- Inference: Ollama 0.19+ (MLX backend) for LLMs and embeddings, lightning-whisper-mlx for speech-to-text, mlx-vlm for vision/OCR.
+- PostgreSQL with pgvector for relational state + vector embeddings, Redis for queues and caching.
 - Markdown vault on disk is a product asset and must remain portable.
+- Apple Silicon first (M1+), with CPU fallbacks for Linux.
 
 ## Architecture principles
 - Source of truth for user-authored and model-authored knowledge is the vault plus relational metadata, never hidden chat state.
 - Every generated artifact must record source coverage, generation time, model, and confidence notes.
 - Separate raw source storage, compiled Markdown, derived indexes, and published UI caches.
-- Keep vendor adapters thin so DeerFlow, Hermes, and MiroFish can be swapped or disabled independently.
-- Treat MiroFish as optional and isolated because simulation is a premium workflow and licensing may require separation.
+- Sequential model loading: only one large model in memory at a time. Unload before loading next.
+- InferenceRouter is the single entry point for all ML inference. No direct imports of model libraries.
+- Keep vendor adapters thin so DeerFlow, Hermes, and MiroFish can be swapped or disabled independently. All three run locally against Ollama + vault RAG.
+- Treat MiroFish as optional and isolated because simulation is a premium workflow requiring user confirmation.
 
 ## Development workflow
 - Explore first, then plan, then implement.

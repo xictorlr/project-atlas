@@ -1,3 +1,7 @@
+# Local runtime assets — models, data, uploads, cache
+# Everything downloaded by scripts/setup.sh lives here
+.local/
+
 # Dependencies
 node_modules/
 .pnp

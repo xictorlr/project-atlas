@@ -31,6 +31,12 @@ from typing import Any
 
 from atlas_worker.compiler import backlinks, entity_extraction, index_generator, source_notes
 from atlas_worker.compiler.source_notes import SourceRecord, SourceNoteResult
+from atlas_worker.compiler.summarizer import summarize_source
+from atlas_worker.compiler.meeting_minutes import generate_meeting_minutes
+from atlas_worker.compiler.reference_extractor import extract_references
+from atlas_worker.compiler.translator import translate_text
+from atlas_worker.compiler.tracker import rebuild_decision_log, rebuild_action_items
+from atlas_worker.inference.router import InferenceRouter
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +57,7 @@ class CompileVaultResult:
     notes_conflict: int = 0
     entities_found: int = 0
     broken_links: int = 0
+    llm_enhanced: bool = False
     total_time_ms: int = 0
     errors: list[str] = field(default_factory=list)
 
@@ -65,6 +72,7 @@ class CompileVaultResult:
             "notes_conflict": self.notes_conflict,
             "entities_found": self.entities_found,
             "broken_links": self.broken_links,
+            "llm_enhanced": self.llm_enhanced,
             "total_time_ms": self.total_time_ms,
             "errors": self.errors,
         }
@@ -178,7 +186,83 @@ async def compile_vault(
             logger.error(msg)
             result.errors.append(msg)
 
-    # 4. Rebuild indexes.
+    # ---------------------------------------------------------------
+    # Steps 4-8: LLM-enhanced compilation (requires InferenceRouter)
+    # If no router in ctx, these steps are skipped gracefully.
+    # ---------------------------------------------------------------
+    router: InferenceRouter | None = ctx.get("router")
+
+    if router is not None:
+        # 4. Summaries — one per source
+        for record, note_result in compiled_pairs:
+            if note_result.action == "conflict":
+                continue
+            try:
+                note_text = note_result.path.read_text(encoding="utf-8") if note_result.path.exists() else ""
+                if note_text.strip():
+                    summary = await summarize_source(note_text, router)
+                    logger.debug("summary for %s: %d words", record.source_id, summary.word_count)
+            except Exception as exc:
+                msg = f"summarizer failed for {record.source_id}: {exc}"
+                logger.warning(msg)
+                result.errors.append(msg)
+
+        # 5. Meeting minutes — audio sources only
+        for record, note_result in compiled_pairs:
+            if note_result.action == "conflict":
+                continue
+            if getattr(record, "source_kind", None) != "audio":
+                continue
+            try:
+                note_text = note_result.path.read_text(encoding="utf-8") if note_result.path.exists() else ""
+                if note_text.strip():
+                    known_entities = [e.name for e in entity_extraction.extract_entities_heuristic(note_text)]
+                    minutes = await generate_meeting_minutes(note_text, known_entities, router)
+                    logger.info(
+                        "meeting minutes for %s: %d decisions, %d action items",
+                        record.source_id, len(minutes.decisions), len(minutes.action_items),
+                    )
+            except Exception as exc:
+                msg = f"meeting_minutes failed for {record.source_id}: {exc}"
+                logger.warning(msg)
+                result.errors.append(msg)
+
+        # 6. References — per source
+        for record, note_result in compiled_pairs:
+            if note_result.action == "conflict":
+                continue
+            try:
+                note_text = note_result.path.read_text(encoding="utf-8") if note_result.path.exists() else ""
+                if note_text.strip():
+                    refs = await extract_references(note_text, router)
+                    logger.debug("references for %s: %d found", record.source_id, len(refs))
+            except Exception as exc:
+                msg = f"reference_extractor failed for {record.source_id}: {exc}"
+                logger.warning(msg)
+                result.errors.append(msg)
+
+        # 7. Cross-source trackers (decisions + action items)
+        try:
+            await rebuild_decision_log(workspace_vault_dir, router)
+            await rebuild_action_items(workspace_vault_dir, router)
+        except Exception as exc:
+            msg = f"tracker rebuild failed: {exc}"
+            logger.warning(msg)
+            result.errors.append(msg)
+
+        # 8. Translation (if project language differs from source)
+        # TODO: wire when project settings expose target_language
+        # for record, note_result in compiled_pairs:
+        #     if record.language != project_target_language:
+        #         translated = await translate_text(text, target_language, router)
+
+        # Unload LLM to free RAM before embedding stage
+        router.unload_all()
+        result.llm_enhanced = True
+    else:
+        logger.info("No InferenceRouter in ctx — skipping LLM compilation steps 4-8")
+
+    # 9. Rebuild indexes.
     try:
         index_generator.rebuild_indexes(workspace_vault_dir)
     except Exception as exc:
@@ -186,7 +270,7 @@ async def compile_vault(
         logger.error(msg)
         result.errors.append(msg)
 
-    # 5. Backlink verification.
+    # 10. Backlink verification.
     try:
         backlink_report = backlinks.verify_all(workspace_vault_dir)
         result.broken_links = backlink_report.broken_count

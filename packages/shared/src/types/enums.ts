@@ -6,6 +6,12 @@ export const SourceKind = {
   Dataset: "dataset",
   Transcript: "transcript",
   WebClip: "web_clip",
+  Audio: "audio",
+  Image: "image",
+  Video: "video",
+  Docx: "docx",
+  Xlsx: "xlsx",
+  Pptx: "pptx",
 } as const;
 export type SourceKind = (typeof SourceKind)[keyof typeof SourceKind];
 
@@ -23,6 +29,7 @@ export const VaultNoteKind = {
   Concept: "concept",
   Index: "index",
   Timeline: "timeline",
+  Output: "output",
 } as const;
 export type VaultNoteKind = (typeof VaultNoteKind)[keyof typeof VaultNoteKind];
 
@@ -35,6 +42,8 @@ export const JobKind = {
   Publish: "publish",
   HealthCheck: "health_check",
   Simulation: "simulation",
+  GenerateOutput: "generate_output",
+  Research: "research",
 } as const;
 export type JobKind = (typeof JobKind)[keyof typeof JobKind];
 
@@ -54,6 +63,14 @@ export const OutputArtifactKind = {
   PublishedPage: "published_page",
   SimulationPackage: "simulation_package",
   Download: "download",
+  StatusReport: "status_report",
+  ClientBrief: "client_brief",
+  WeeklyDigest: "weekly_digest",
+  RiskRegister: "risk_register",
+  RaciMatrix: "raci_matrix",
+  FollowupEmail: "followup_email",
+  MermaidDiagram: "mermaid_diagram",
+  Custom: "custom",
 } as const;
 export type OutputArtifactKind =
   (typeof OutputArtifactKind)[keyof typeof OutputArtifactKind];

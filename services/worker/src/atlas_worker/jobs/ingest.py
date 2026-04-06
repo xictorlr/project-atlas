@@ -59,9 +59,12 @@ async def ingest_source(ctx: dict[str, Any], source_id: str) -> dict[str, object
         file_size_bytes = len(raw_bytes)
 
         # ------------------------------------------------------------------
-        # Step 3: extract text
+        # Step 3: extract text (try async extractors first, then sync)
         # ------------------------------------------------------------------
-        extracted = _extract(raw_bytes, mime_type)
+        filename = source.get("filename", source_id)
+        extracted = await _extract_async(raw_bytes, mime_type, filename, ctx)
+        if extracted is None:
+            extracted = _extract(raw_bytes, mime_type)
         full_text: str = extracted["full_text"]
         title: str | None = extracted.get("title") or source.get("title")
 
@@ -169,7 +172,12 @@ def _read_file(storage_key: str) -> bytes:
 # ---------------------------------------------------------------------------
 
 def _extract(raw: bytes, mime_type: str | None) -> dict[str, Any]:
-    """Route to extractor by mime_type. Returns dict with full_text + optional fields."""
+    """Route to extractor by mime_type. Returns dict with full_text + optional fields.
+
+    Sync extractors (PDF, HTML, text, Office) return immediately.
+    Async extractors (audio, image/OCR) require the InferenceRouter and must
+    be called via _extract_async() instead.
+    """
     mime = (mime_type or "text/plain").lower()
 
     if "pdf" in mime:
@@ -190,6 +198,36 @@ def _extract(raw: bytes, mime_type: str | None) -> dict[str, Any]:
             "author": result.author,
         }
 
+    # Word .docx
+    if "wordprocessingml" in mime or mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        from atlas_worker.extractors.docx import extract_docx
+        result = extract_docx(raw)
+        return {
+            "full_text": result.full_text,
+            "title": result.title,
+            "language": result.language,
+        }
+
+    # Excel .xlsx / .csv
+    if "spreadsheetml" in mime or "csv" in mime or mime == "text/csv":
+        from atlas_worker.extractors.xlsx import extract_xlsx
+        result = extract_xlsx(raw)
+        return {
+            "full_text": result.full_text,
+            "title": None,
+            "language": result.language,
+        }
+
+    # PowerPoint .pptx
+    if "presentationml" in mime:
+        from atlas_worker.extractors.pptx import extract_pptx
+        result = extract_pptx(raw)
+        return {
+            "full_text": result.full_text,
+            "title": result.title,
+            "language": result.language,
+        }
+
     # Default: plain text passthrough
     from atlas_worker.extractors.text import extract_text
     result = extract_text(raw)
@@ -197,6 +235,42 @@ def _extract(raw: bytes, mime_type: str | None) -> dict[str, Any]:
         "full_text": result.full_text,
         "title": result.title,
     }
+
+
+async def _extract_async(
+    raw: bytes, mime_type: str | None, filename: str, ctx: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Handle async extractors that need the InferenceRouter (audio, images).
+
+    Returns None if mime_type is not an async type (caller should fall through to _extract).
+    """
+    mime = (mime_type or "").lower()
+    router = ctx.get("router")
+
+    # Audio files → Whisper transcription
+    if mime.startswith("audio/") and router is not None:
+        from atlas_worker.extractors.audio import extract_audio
+        result = await extract_audio(raw, filename, router)
+        return {
+            "full_text": result.text,
+            "title": None,
+            "language": result.language,
+            "duration_seconds": result.duration_seconds,
+            "confidence": result.confidence,
+        }
+
+    # Image files → Vision OCR
+    if mime.startswith("image/") and router is not None:
+        from atlas_worker.extractors.ocr import extract_ocr
+        result = await extract_ocr(raw, filename, router)
+        return {
+            "full_text": result.text,
+            "title": None,
+            "language": result.language,
+            "has_tables": result.has_tables,
+        }
+
+    return None
 
 
 # ---------------------------------------------------------------------------

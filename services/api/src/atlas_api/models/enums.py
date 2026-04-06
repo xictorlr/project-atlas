@@ -11,6 +11,12 @@ class SourceKind(StrEnum):
     DATASET = "dataset"
     TRANSCRIPT = "transcript"
     WEB_CLIP = "web_clip"
+    AUDIO = "audio"
+    IMAGE = "image"
+    VIDEO = "video"
+    DOCX = "docx"
+    XLSX = "xlsx"
+    PPTX = "pptx"
 
 
 class SourceStatus(StrEnum):
@@ -26,6 +32,7 @@ class VaultNoteKind(StrEnum):
     CONCEPT = "concept"
     INDEX = "index"
     TIMELINE = "timeline"
+    OUTPUT = "output"
 
 
 class JobKind(StrEnum):
@@ -37,6 +44,8 @@ class JobKind(StrEnum):
     PUBLISH = "publish"
     HEALTH_CHECK = "health_check"
     SIMULATION = "simulation"
+    GENERATE_OUTPUT = "generate_output"
+    RESEARCH = "research"
 
 
 class JobStatus(StrEnum):
