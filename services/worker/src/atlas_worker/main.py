@@ -9,7 +9,7 @@ from arq.connections import RedisSettings
 
 from atlas_worker.config import worker_settings
 from atlas_worker.inference.router import InferenceRouter
-from atlas_worker.jobs import compile_vault, ingest_source
+from atlas_worker.jobs import compile_vault, generate_output, ingest_source
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ async def on_shutdown(ctx: dict[str, Any]) -> None:
 class WorkerConfig:
     """arq worker configuration."""
 
-    functions = [ingest_source, compile_vault]
+    functions = [ingest_source, compile_vault, generate_output]
     redis_settings = RedisSettings.from_dsn(worker_settings.redis_url)
     max_jobs = worker_settings.max_jobs
     job_timeout = worker_settings.job_timeout

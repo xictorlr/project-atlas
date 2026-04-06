@@ -191,3 +191,161 @@ Respond as a JSON array only. Return [] if no contradictions found.
 Sources:
 {sources_block}
 """
+
+# ---------------------------------------------------------------------------
+# Output generation prompts
+# ---------------------------------------------------------------------------
+
+OUTPUT_SYSTEM_PROMPT = """You are a professional consultant assistant generating
+structured Markdown documents from a project knowledge vault.
+
+Rules you must never break:
+- Ground ALL claims in the provided context passages. Do NOT invent information.
+- Do NOT add background knowledge or assumptions from your training data.
+- Use [[wikilinks]] when referencing entities, notes, or sources present in the context.
+- Format output as clean, structured Markdown with appropriate headings and sections.
+- If the context lacks sufficient information for a section, write "Insufficient data in vault."
+- Never fabricate statistics, dates, names, or commitments not found in the context.
+"""
+
+OUTPUT_PROMPTS: dict[str, str] = {
+    "status_report": """\
+Generate a Project Status Report from the following vault context.
+
+Structure:
+## Executive Summary
+One paragraph summarizing overall project health.
+
+## Decisions Made
+Bullet list of key decisions taken, with source references [[note_slug]].
+
+## Open Risks
+Table: | Risk | Likelihood | Impact | Mitigation | Source |
+
+## Action Items
+Table: | Item | Owner | Deadline | Status | Source |
+
+## Next Steps
+Numbered list of immediate next steps.
+
+Custom instructions: {custom_instructions}
+
+CONTEXT:
+{context}
+""",
+
+    "client_brief": """\
+Generate a polished Client Brief (1–2 pages) from the following vault context.
+
+Structure:
+## Project Overview
+Two paragraphs: what we are building and for whom.
+
+## Progress to Date
+Narrative summary of achievements and milestones reached.
+
+## Key Decisions and Rationale
+Bullet list of strategic decisions made, with brief rationale.
+
+## Risks and Mitigations
+Short table: | Risk | Mitigation |
+
+## Next Milestone
+One paragraph on the immediate next deliverable and timeline.
+
+Tone: professional, concise, suitable for external delivery.
+Custom instructions: {custom_instructions}
+
+CONTEXT:
+{context}
+""",
+
+    "weekly_digest": """\
+Generate a Weekly Project Digest from the following vault context.
+
+Structure:
+## Week in Review
+Two paragraphs summarising what happened this week.
+
+## Completed
+Bullet list of items completed this week, citing [[sources]].
+
+## In Progress
+Bullet list of work currently underway.
+
+## Blockers
+Bullet list of anything that is blocked and who is responsible.
+
+## Coming Up Next Week
+Bullet list of planned work for the upcoming week.
+
+Custom instructions: {custom_instructions}
+
+CONTEXT:
+{context}
+""",
+
+    "risk_register": """\
+Generate a Risk Register from the following vault context.
+
+Output a Markdown table with these columns:
+| ID | Risk Description | Category | Likelihood (H/M/L) | Impact (H/M/L) | Risk Score | Owner | Mitigation Strategy | Status | Source |
+
+- Assign a sequential ID (R001, R002, …).
+- Category: schedule | budget | technical | resource | external | compliance.
+- Risk Score = combine Likelihood + Impact (HH=Critical, HM/MH=High, MM=Medium, HL/LH=Medium, ML/LM=Low, LL=Low).
+- Source: [[note_slug]] of the vault note where the risk was identified.
+- Only include risks explicitly mentioned in the context.
+
+Custom instructions: {custom_instructions}
+
+CONTEXT:
+{context}
+""",
+
+    "followup_email": """\
+Draft a professional follow-up email from the following vault context.
+
+Structure:
+**Subject:** [Descriptive subject line]
+
+---
+
+[Opening paragraph: purpose of the email and meeting/event reference]
+
+**Key Discussion Points:**
+- Bullet list of main topics discussed, cited from [[sources]]
+
+**Decisions Made:**
+- Bullet list of decisions, with owners where known
+
+**Action Items:**
+| Action | Owner | Deadline |
+|--------|-------|----------|
+
+[Closing paragraph with next steps and call to action]
+
+**Best regards,**
+[Author]
+
+Tone: professional, concise, actionable.
+Custom instructions: {custom_instructions}
+
+CONTEXT:
+{context}
+""",
+
+    "custom": """\
+{custom_instructions}
+
+Use ONLY the information in the following context to respond.
+Ground every claim in the provided passages and cite sources with [[note_slug]].
+
+CONTEXT:
+{context}
+""",
+}
+
+# Supported output kinds (superset of OUTPUT_PROMPTS keys — extra kinds may use
+# the custom prompt path or be added in later phases).
+OUTPUT_KINDS = frozenset(OUTPUT_PROMPTS.keys())

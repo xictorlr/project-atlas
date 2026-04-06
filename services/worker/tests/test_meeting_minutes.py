@@ -139,9 +139,9 @@ async def test_generate_action_items_parsed() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_model_name_preserved() -> None:
-    router = _make_router(_VALID_MINUTES_PAYLOAD, model="gemma4:27b")
+    router = _make_router(_VALID_MINUTES_PAYLOAD, model="gemma4:26b")
     result = await generate_meeting_minutes("Transcript here.", [], router)
-    assert result.model == "gemma4:27b"
+    assert result.model == "gemma4:26b"
 
 
 @pytest.mark.asyncio

@@ -52,7 +52,7 @@ class LocalDeerFlowAdapter:
         """
 ```
 
-**Model**: `gemma4:27b` (default) or project's synthesis model.
+**Model**: `gemma4:26b` (default) or project's synthesis model.
 **Use case**: "What do we know about the competitor's pricing?" → searches vault, synthesizes from meetings + docs.
 
 ## Hermes — Local Session Memory
@@ -76,7 +76,7 @@ class LocalHermesAdapter:
         """LLM summarizes what happened in the current session for next time."""
 ```
 
-**Model**: `gemma4:12b` (lightweight, context summarization is simple).
+**Model**: `gemma4` (lightweight, context summarization is simple).
 **Use case**: Open project → Hermes says "Last session you were reviewing the Q1 budget gap and had 3 open action items."
 
 ## MiroFish — Local Simulation Gateway
@@ -123,8 +123,8 @@ enable_deerflow: bool = True
 enable_hermes: bool = True
 enable_mirofish: bool = False  # off by default
 
-deerflow_model: str = "gemma4:27b"
-hermes_model: str = "gemma4:12b"
+deerflow_model: str = "gemma4:26b"
+hermes_model: str = "gemma4"
 mirofish_model: str = "qwen3.5-27b-claude-distilled"
 ```
 

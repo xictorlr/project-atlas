@@ -48,7 +48,7 @@ docker-compose.yml         # pgvector/pgvector:pg16, bind mounts to .local/, Oll
 
 1. Create `.local/` directory structure
 2. Check Ollama installed, start if needed
-3. Pull Ollama models into `.local/ollama/` (gemma4:27b, gemma4:12b, nomic-embed-text)
+3. Pull Ollama models into `.local/ollama/` (gemma4:26b, gemma4, nomic-embed-text)
 4. Download MLX Whisper model into `.local/mlx/whisper/`
 5. Download MLX Vision model into `.local/mlx/vlm/`
 6. Install JS dependencies (pnpm install)

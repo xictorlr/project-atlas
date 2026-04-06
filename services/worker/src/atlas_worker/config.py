@@ -38,7 +38,7 @@ class WorkerSettings(BaseSettings):
     # Ollama (LLMs + embeddings)
     ollama_base_url: str = Field(default="http://localhost:11434")
     ollama_timeout_s: int = Field(default=120)
-    ollama_default_model: str = Field(default="gemma4:27b")
+    ollama_default_model: str = Field(default="gemma4:26b")
     ollama_embedding_model: str = Field(default="nomic-embed-text")
 
     # MLX backends

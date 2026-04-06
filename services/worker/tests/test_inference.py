@@ -39,17 +39,17 @@ class TestOllamaClient:
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = {
             "response": "Hello world",
-            "model": "gemma4:27b",
+            "model": "gemma4:26b",
             "eval_count": 5,
             "total_duration": 1_000_000_000,
         }
 
         with patch.object(client._client, "post", new_callable=AsyncMock, return_value=mock_response):
-            result = await client.generate("gemma4:27b", "Say hello")
+            result = await client.generate("gemma4:26b", "Say hello")
 
         assert isinstance(result, GenerateResult)
         assert result.text == "Hello world"
-        assert result.model == "gemma4:27b"
+        assert result.model == "gemma4:26b"
         assert result.backend == "ollama"
         assert result.tokens_used == 5
 
@@ -75,14 +75,14 @@ class TestOllamaClient:
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = {
-            "models": [{"name": "gemma4:27b"}, {"name": "nomic-embed-text"}],
+            "models": [{"name": "gemma4:26b"}, {"name": "nomic-embed-text"}],
         }
 
         with patch.object(client._client, "get", new_callable=AsyncMock, return_value=mock_response):
             health = await client.health()
 
         assert health.available is True
-        assert "gemma4:27b" in health.models_loaded
+        assert "gemma4:26b" in health.models_loaded
 
     @pytest.mark.asyncio
     async def test_health_when_down(self, client: OllamaClient) -> None:
@@ -105,7 +105,7 @@ class TestOllamaClient:
         mock_response.json.return_value = {
             "models": [
                 {
-                    "name": "gemma4:27b",
+                    "name": "gemma4:26b",
                     "size": 18_000_000_000,
                     "details": {"family": "gemma", "quantization_level": "Q4_K_M"},
                 },
@@ -116,7 +116,7 @@ class TestOllamaClient:
             models = await client.list_models()
 
         assert len(models) == 1
-        assert models[0].name == "gemma4:27b"
+        assert models[0].name == "gemma4:26b"
         assert models[0].size_gb == 18.0
         assert models[0].backend == "ollama"
 
@@ -194,7 +194,7 @@ class TestInferenceRouter:
             ollama=ollama,
             whisper=whisper,
             vlm=vlm,
-            default_model="gemma4:27b",
+            default_model="gemma4:26b",
             embedding_model="nomic-embed-text",
         )
 
@@ -202,7 +202,7 @@ class TestInferenceRouter:
     async def test_generate_delegates_to_ollama(self, router: InferenceRouter) -> None:
         expected = GenerateResult(
             text="test output",
-            model="gemma4:27b",
+            model="gemma4:26b",
             backend="ollama",
             tokens_used=10,
             duration_ms=100,
@@ -223,7 +223,7 @@ class TestInferenceRouter:
     @pytest.mark.asyncio
     async def test_health_aggregation(self, router: InferenceRouter) -> None:
         router._ollama.health = AsyncMock(
-            return_value=BackendHealth(name="ollama", available=True, models_loaded=["gemma4:27b"])
+            return_value=BackendHealth(name="ollama", available=True, models_loaded=["gemma4:26b"])
         )
 
         health = await router.health()

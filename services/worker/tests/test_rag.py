@@ -52,7 +52,7 @@ def _make_router_mock(
     router.generate = AsyncMock(
         return_value=GenerateResult(
             text=answer,
-            model="gemma4:27b",
+            model="gemma4:26b",
             backend="ollama",
             tokens_used=150,
             duration_ms=500,
@@ -254,7 +254,7 @@ class TestQuery:
 
         result = await pipeline.query("question", "ws1")
 
-        assert result.model == "gemma4:27b"
+        assert result.model == "gemma4:26b"
 
     @pytest.mark.asyncio
     async def test_tokens_used_propagated(self) -> None:

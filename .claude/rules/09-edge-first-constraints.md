@@ -29,8 +29,8 @@ This rule takes precedence over any rule that implies cloud connectivity.
 ## Model profiles
 
 Support hardware-aware model selection via `MODEL_PROFILE` env var:
-- `light`: 16GB RAM — smaller models (gemma4:12b, distil-large-v3)
-- `standard`: 32GB RAM — full models (gemma4:27b, large-v3) — **default**
+- `light`: 16GB RAM — smaller models (gemma4, distil-large-v3)
+- `standard`: 32GB RAM — full models (gemma4:26b, large-v3) — **default**
 - `reasoning`: 32GB+ — deep reasoning model for MiroFish/analysis
 - `polyglot`: multi-language focus (qwen3, bge-m3, translategemma)
 - `maximum`: 64GB+ — largest models available

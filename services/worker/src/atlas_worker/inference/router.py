@@ -38,7 +38,7 @@ class InferenceRouter:
     Usage::
 
         router = InferenceRouter.from_config(settings)
-        result = await router.generate("Summarize this text...", model="gemma4:27b")
+        result = await router.generate("Summarize this text...", model="gemma4:26b")
         transcript = await router.transcribe(Path("meeting.m4a"), language="en")
         ocr = await router.ocr(Path("whiteboard.jpg"))
         embedding = await router.embed("search query text")
@@ -49,7 +49,7 @@ class InferenceRouter:
         ollama: OllamaClient,
         whisper: WhisperMLXBackend,
         vlm: VisionMLXBackend,
-        default_model: str = "gemma4:27b",
+        default_model: str = "gemma4:26b",
         embedding_model: str = "nomic-embed-text",
     ) -> None:
         self._ollama = ollama
@@ -73,7 +73,7 @@ class InferenceRouter:
         mlx_dir = Path(getattr(settings, "mlx_dir", ".local/mlx"))
         whisper_size = getattr(settings, "whisper_model_size", "large-v3")
         vlm_model = getattr(settings, "vlm_model", "mlx-community/gemma-4-12b-vision-4bit")
-        default_model = getattr(settings, "ollama_default_model", "gemma4:27b")
+        default_model = getattr(settings, "ollama_default_model", "gemma4:26b")
         embed_model = getattr(settings, "ollama_embedding_model", "nomic-embed-text")
 
         return cls(

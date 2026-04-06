@@ -118,11 +118,11 @@ else
 fi
 
 # Pull models — ollama pull is idempotent (skips if already present)
-echo "  Pulling gemma4:27b  (~18 GB) — primary synthesis model..."
-OLLAMA_MODELS="$LOCAL_DIR/ollama" ollama pull gemma4:27b
+echo "  Pulling gemma4:26b  (~18 GB) — primary synthesis model..."
+OLLAMA_MODELS="$LOCAL_DIR/ollama" ollama pull gemma4:26b
 
-echo "  Pulling gemma4:12b  (~8 GB)  — lightweight synthesis..."
-OLLAMA_MODELS="$LOCAL_DIR/ollama" ollama pull gemma4:12b
+echo "  Pulling gemma4  (~8 GB)  — lightweight synthesis..."
+OLLAMA_MODELS="$LOCAL_DIR/ollama" ollama pull gemma4
 
 echo "  Pulling nomic-embed-text (~274 MB) — search embeddings..."
 OLLAMA_MODELS="$LOCAL_DIR/ollama" ollama pull nomic-embed-text

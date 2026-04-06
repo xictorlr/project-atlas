@@ -95,9 +95,9 @@ async def test_translate_custom_source_language() -> None:
 
 @pytest.mark.asyncio
 async def test_translate_model_name_preserved() -> None:
-    router = _make_router("Hola.", model="gemma4:27b")
+    router = _make_router("Hola.", model="gemma4:26b")
     result = await translate_text("Hello.", "Spanish", router)
-    assert result.model == "gemma4:27b"
+    assert result.model == "gemma4:26b"
 
 
 @pytest.mark.asyncio

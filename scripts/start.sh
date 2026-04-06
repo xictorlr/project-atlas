@@ -28,7 +28,7 @@ LOCAL_DIR="$ATLAS_ROOT/.local"
 # Ollama: LLM + embedding models
 export OLLAMA_MODELS="$LOCAL_DIR/ollama"
 export OLLAMA_BASE_URL="http://localhost:11434"
-export OLLAMA_DEFAULT_MODEL="${OLLAMA_DEFAULT_MODEL:-gemma4:27b}"
+export OLLAMA_DEFAULT_MODEL="${OLLAMA_DEFAULT_MODEL:-gemma4:26b}"
 export OLLAMA_EMBEDDING_MODEL="${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}"
 
 # MLX: Whisper + Vision model caches (HF_HOME redirects HuggingFace downloads)

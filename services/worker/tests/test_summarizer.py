@@ -68,9 +68,9 @@ async def test_summarize_word_count_is_correct() -> None:
 
 @pytest.mark.asyncio
 async def test_summarize_model_name_preserved() -> None:
-    router = _make_router("Summary text.", model="gemma4:27b")
+    router = _make_router("Summary text.", model="gemma4:26b")
     result = await summarize_source("Input text here.", "src_003", router)
-    assert result.model == "gemma4:27b"
+    assert result.model == "gemma4:26b"
 
 
 @pytest.mark.asyncio

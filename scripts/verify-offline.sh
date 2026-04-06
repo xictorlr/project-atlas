@@ -91,8 +91,8 @@ echo ""
 echo "--- Ollama models (OLLAMA_MODELS=$LOCAL_DIR/ollama) ---"
 
 REQUIRED_OLLAMA_MODELS=(
-    "gemma4:27b"
-    "gemma4:12b"
+    "gemma4:26b"
+    "gemma4"
     "nomic-embed-text"
 )
 
@@ -122,7 +122,7 @@ else
     if curl -sf http://localhost:11434/api/tags >/dev/null 2>&1; then
         OLLAMA_LIST="$(OLLAMA_MODELS="$LOCAL_DIR/ollama" ollama list 2>/dev/null || echo "")"
         for model in "${REQUIRED_OLLAMA_MODELS[@]}"; do
-            # Match model name prefix (e.g. "gemma4:27b" in list output)
+            # Match model name prefix (e.g. "gemma4:26b" in list output)
             if echo "$OLLAMA_LIST" | grep -qF "$model"; then
                 check_pass "ollama: $model"
             else

@@ -87,7 +87,7 @@ type: output
 output_kind: status_report
 workspace_id: ws_abc123
 generated_at: "2026-04-10T15:30:00Z"
-model: "gemma4:27b"
+model: "gemma4:26b"
 generation_time_ms: 12450
 sources_consulted: 8
 notes_referenced:
