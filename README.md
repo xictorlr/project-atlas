@@ -1,313 +1,286 @@
-# Project Atlas
+# The Consultant
 
-A knowledge compiler that turns raw sources into a living Markdown wiki, searchable answers, reusable outputs, and scenario simulations.
+An edge-first knowledge compiler for consultants. Record meetings, upload documents, and get a structured Markdown vault with meeting minutes, summaries, action items, and client-ready reports. All inference runs locally — zero data leaves your machine.
 
-Not a chat-over-docs toy. A **compiler** — deterministic pipelines that ingest raw material, extract structure, and produce a portable knowledge vault you actually own.
+## The Problem
 
-## Why Atlas
+You finish a client meeting. You have a recording, a whiteboard photo, three PDFs they shared, and scattered notes. Now what?
 
-Most tools that "work with your documents" do the same thing: chunk your files, stuff them into a vector database, and let an LLM guess at answers. You get a chat window. The knowledge stays trapped inside the tool. When the tool dies, your work dies with it.
+Most tools either trap your knowledge in a chat window, require cloud APIs that leak client data, or need you to manually organize everything. After 8 weeks on a project you have hundreds of files and no structure.
 
-Atlas takes a different approach:
+## What The Consultant Does
 
-**You keep everything.** The output is plain Markdown files on your filesystem. Open them in Obsidian, VS Code, or `cat`. No vendor lock-in, no proprietary format, no database you can't read without the app running.
+You create a project, drop in your files, and the pipeline compiles everything into a searchable, linked knowledge vault:
 
-**Nothing is invented.** Every claim in a search result traces back to a specific passage in a specific source. No "based on your documents, I think..." — you get the actual text, with citations, so you can verify it yourself.
-
-**It gets better as you add sources.** Each new document doesn't just sit in a pile — the compiler cross-references it against everything else. Entities link across sources. Indexes rebuild. Backlinks connect related ideas. The vault becomes a knowledge graph that grows denser and more useful over time.
-
-**Your edits are sacred.** Edit a compiled note by hand? The compiler detects the conflict and preserves your version. It will never silently overwrite your work.
-
-**It's deterministic.** Run the same sources through the pipeline twice, get the same vault. No temperature knobs, no "try again for a different answer." When you need LLM judgment — for synthesis, summarization, or simulation — it's an explicit, opt-in step, not the default.
-
-### Who it's for
-
-- **Researchers** building literature reviews from dozens of papers
-- **Analysts** compiling competitive intelligence from scattered sources
-- **Consultants** maintaining structured knowledge bases across client engagements
-- **Policy teams** tracking regulatory changes across multiple documents
-- **Anyone** drowning in documents who needs structure, not another chat window
-
-### Compared to alternatives
-
-| | Chat-over-docs tools | Note-taking apps | **Atlas** |
-|---|---|---|---|
-| Output format | Chat messages (ephemeral) | Manual notes (labor-intensive) | **Compiled Markdown vault (automatic, portable)** |
-| Source tracing | "Based on your docs..." | Whatever you remember to write | **Every fact cites its source passage** |
-| Cross-referencing | None | Manual linking | **Automatic entity extraction + wikilinks** |
-| Your data | Trapped in vendor DB | Yours, but unstructured | **Yours, structured, Obsidian-compatible** |
-| Runs without the app | No | Yes, but raw notes | **Yes — it's just Markdown files** |
-| Handles contradictions | Picks one, doesn't tell you | You have to notice | **Health checks flag inconsistencies** |
-| Scales with sources | Slower, noisier answers | More manual work | **Denser knowledge graph, better indexes** |
-
-## What It Does
-
-You feed it documents. It gives you back a linked knowledge base.
-
-```mermaid
-flowchart LR
-    A["Raw Sources<br/>PDF · HTML · Text"] --> B["Ingest Pipeline<br/>extract · chunk · hash"]
-    B --> C["Vault Compiler<br/>notes · entities · indexes"]
-    C --> D["Markdown Vault<br/>Obsidian-ready"]
-    D --> E["Search + Evidence<br/>citations · answers"]
-
-    style A fill:#64748b,color:#fff
-    style D fill:#6366f1,color:#fff
-    style E fill:#059669,color:#fff
+```
+Meeting audio (.m4a)  ──► Whisper transcription (EN→ES, ES→ES)
+Whiteboard photo      ──► Vision OCR (tables, handwriting)  
+PDF reports           ──► Text extraction + metadata         ──► Compiled Vault
+Word/Excel/PowerPoint ──► Structure-aware extraction              │
+Markdown notes        ──► Direct passthrough                      │
+                                                                   ▼
+                                                          Meeting minutes
+                                                          Entity profiles
+                                                          Decision log
+                                                          Action items
+                                                          Concept articles
+                                                          Status reports
+                                                          Searchable answers
 ```
 
-**Input:** Any text, HTML, or PDF document.
+**20-minute audio transcribed in ~24 seconds** on Mac M2. English meetings → Spanish notes? Automatic.
 
-**Output:**
-- A Markdown vault with source notes, entity profiles, indexes, and backlinks — browsable in [Obsidian](https://obsidian.md)
-- A search engine that returns citation-backed evidence packs, not hallucinated summaries
-- Reusable exports (ZIP, sync) that preserve provenance and file stability
+## Edge-First: Everything Runs Locally
 
-### The vault is the product
+No OpenAI. No Anthropic. No cloud APIs. The entire inference stack runs on your machine:
 
-The compiled Markdown vault is not a side effect or an export option. It's the primary artifact:
+| Task | Backend | Speed |
+|------|---------|-------|
+| LLM synthesis | Ollama 0.19+ (MLX) — Gemma 4, Qwen 3.5 | Near-native on Apple Silicon |
+| Transcription | lightning-whisper-mlx | 10x faster than whisper.cpp |
+| OCR / Vision | mlx-vlm — Gemma 4 vision | Documents, whiteboards, tables |
+| Embeddings | Ollama — nomic-embed-text | Semantic search via pgvector |
+| Vector DB | PostgreSQL + pgvector | HNSW index, <50ms queries |
 
-- Every note has YAML frontmatter with source tracing, timestamps, and tags
-- Entities are cross-referenced with `[[wikilinks]]` that Obsidian resolves natively
-- Indexes rebuild automatically — sources, entities, tags — always current
-- User edits are preserved: the compiler detects conflicts and never overwrites manual work
-- Backlinks are verified: broken `[[links]]` surface as health check errors, not silent failures
+Models load **sequentially** — one at a time. A 32GB Mac runs the full pipeline including 27B parameter models.
 
-### Search returns evidence, not guesses
+All models and data live in `.local/` inside the project directory. Move the folder, everything comes with it. Delete `.local/`, reclaim all disk space.
 
-When you search, you don't get "based on your documents, here's what I think." You get:
+## Consultant Workflow
 
-- **Ranked results** with TF-IDF scoring across your vault
-- **Evidence packs** — the actual passages that answer your query, with source attribution
-- **Footnote citations** in Markdown format, traceable back to the original source note
+```
+Week 1:  Create project → upload proposals, contracts
+         First compile → vault has initial entities + summaries
 
-Every answer can be verified. Nothing is fabricated.
+Week 2:  Record meeting #1 → upload audio + whiteboard photos
+         Re-compile → meeting minutes, new entities, cross-references
+
+Week 3:  Generate weekly digest for client
+         DeerFlow: "Research competitor pricing from vault"
+
+Week 4:  Generate status report
+         MiroFish: "What if budget cuts by 15%?"
+
+Week 8:  Generate final project brief
+         Export vault as ZIP for Obsidian archive
+```
+
+## What Gets Generated
+
+### Automatic (on every compile)
+
+| Output | From |
+|--------|------|
+| Timestamped transcript | Audio files |
+| Meeting minutes (attendees, decisions, action items) | Audio transcripts |
+| Executive summary | Any source |
+| Entity profiles (people, companies, projects) | Cross-source extraction |
+| Decision log | All meetings |
+| Action item tracker (owner, deadline, status) | All meetings |
+| Reference list / bibliography | Academic/technical docs |
+| Concept articles | Cross-source synthesis |
+| Contradiction report | Conflicting info across sources |
+
+### On-demand (you request via UI)
+
+| Output | Purpose |
+|--------|---------|
+| Project status report | Executive overview with risks and next steps |
+| Client brief | Polished 1-2 page for delivery |
+| Weekly digest | What happened this week |
+| Risk register | Likelihood / impact / mitigation table |
+| RACI matrix | Responsibility assignment |
+| Follow-up email | Post-meeting with action items |
+| Mermaid diagram | Architecture, flows, timelines |
+| Custom prompt | Any question grounded in vault knowledge |
+
+## Built-in Research & Simulation Tools
+
+| Tool | What it does | Runs on |
+|------|-------------|---------|
+| **DeerFlow** | Multi-step research against your vault — decomposes questions, searches, synthesizes | Gemma 4 27B |
+| **Hermes** | Session memory — remembers what you were working on last time | Gemma 4 12B + Redis |
+| **MiroFish** | What-if simulation — "What if we delay launch by 4 weeks?" | Qwen 3.5 (deep reasoning) |
+
+All three run locally against Ollama + vault RAG. No cloud calls.
 
 ## Architecture
 
 ```mermaid
 graph TB
-    subgraph "Frontend"
-        WEB["Next.js 15<br/>React 19 + Tailwind + shadcn/ui"]
+    subgraph "Frontend — Next.js 15"
+        WEB["Project Dashboard<br/>Wizard · Sources · Vault · Search · Outputs · Tools"]
     end
 
-    subgraph "Backend"
-        API["FastAPI<br/>Pydantic v2 · SQLAlchemy"]
-        SEARCH["Search Engine<br/>TF-IDF · Evidence Packs"]
+    subgraph "API — FastAPI"
+        API["REST API<br/>Projects · Sources · Jobs · Vault · Search · Outputs"]
+        RAG["RAG Pipeline<br/>pgvector + TF-IDF hybrid search"]
     end
 
-    subgraph "Workers"
-        WORKER["arq Job Queue"]
-        INGEST["Ingest<br/>Text · HTML · PDF"]
-        COMPILER["Compiler<br/>Notes · Entities · Indexes"]
-        HEALTH["Health Checks<br/>Vault · Source integrity"]
+    subgraph "Worker — arq + Redis"
+        INGEST["Ingest<br/>Audio · PDF · Images · Office · Text"]
+        COMPILE["Compile<br/>Summaries · Minutes · Entities · Concepts"]
+        GENERATE["Generate<br/>Reports · Briefs · Digests"]
     end
 
-    subgraph "Adapters"
-        DF["DeerFlow — research orchestration"]
-        HM["Hermes — memory bridge"]
-        MF["MiroFish — simulation"]
+    subgraph "Inference — Local Only"
+        OLLAMA["Ollama 0.19+ MLX<br/>Gemma 4 · Qwen 3.5 · Embeddings"]
+        WHISPER["lightning-whisper-mlx<br/>Speech-to-Text"]
+        VLM["mlx-vlm<br/>Vision / OCR"]
     end
 
-    subgraph "Storage"
-        PG[("PostgreSQL 16")]
+    subgraph "Storage — All in .local/"
+        PG[("PostgreSQL 16<br/>+ pgvector")]
         REDIS[("Redis 7")]
-        VAULT["Markdown Vault"]
+        VAULT["Markdown Vault<br/>Obsidian-ready"]
     end
 
     WEB -->|HTTP| API
-    API --> SEARCH
+    API --> RAG
     API -->|enqueue| REDIS
-    API --> PG
-    REDIS -->|consume| WORKER
-    WORKER --> INGEST
-    WORKER --> COMPILER
-    WORKER --> HEALTH
-    INGEST --> PG
-    COMPILER --> VAULT
-    API -.->|optional| DF
-    API -.->|optional| HM
-    API -.->|optional| MF
-    HEALTH --> VAULT
+    REDIS -->|consume| INGEST
+    REDIS -->|consume| COMPILE
+    REDIS -->|consume| GENERATE
+    INGEST --> WHISPER
+    INGEST --> VLM
+    COMPILE --> OLLAMA
+    GENERATE --> RAG
+    RAG --> PG
+    COMPILE --> VAULT
+    GENERATE --> VAULT
 
     style WEB fill:#3b82f6,color:#fff
-    style API fill:#8b5cf6,color:#fff
-    style WORKER fill:#f59e0b,color:#fff
-    style PG fill:#059669,color:#fff
-    style REDIS fill:#dc2626,color:#fff
+    style OLLAMA fill:#f59e0b,color:#fff
+    style WHISPER fill:#f59e0b,color:#fff
+    style VLM fill:#f59e0b,color:#fff
     style VAULT fill:#6366f1,color:#fff
+    style PG fill:#059669,color:#fff
 ```
-
-## Core Pipeline
-
-### 1. Ingest
-
-Upload a document. The pipeline:
-- Extracts text content (plain text passthrough, HTML via BeautifulSoup, PDF via pdfplumber)
-- Splits into chunks with sentence-boundary awareness
-- Computes SHA-256 hashes for deduplication — uploading the same file twice is a no-op
-- Stores a manifest linking raw file to extracted content
-
-### 2. Compile
-
-The compiler turns ingested content into vault notes:
-- **Source notes** — one Markdown file per source, with full frontmatter (title, slug, type, tags, source_id, timestamps)
-- **Entity extraction** — heuristic NER pulls proper nouns, @mentions, URLs, and emails; deduplicates across sources
-- **Index generation** — auto-rebuilt indexes for sources, entities, and tags
-- **Backlink verification** — scans all `[[wikilinks]]`, flags any that point to non-existent notes
-
-The compiler never destroys user work. If you've edited a note manually, it detects the conflict and preserves your version.
-
-### 3. Search
-
-Query the vault and get structured results:
-- TF-IDF inverted index, rebuilt on demand per workspace
-- Snippet extraction (~240 chars of context around matches)
-- Evidence pack assembly — groups the best passages with citation formatting
-- Results are source-attributed and auditable
-
-### 4. Health Checks
-
-Continuous integrity monitoring:
-- **Broken wikilinks** — `[[target]]` resolves to nothing
-- **Missing frontmatter** — required fields absent or null
-- **Stale notes** — not updated in 30+ days
-- **Orphan notes** — no incoming backlinks
-- **Duplicate slugs** — two files sharing the same identifier
-- **Empty notes** — frontmatter present but body blank
-
-### 5. Sync & Export
-
-- **Obsidian sync** — push/pull with conflict detection and conflict notes
-- **ZIP export** — full vault with `.obsidian/` stub, ready to open
-- **Vault API** — list notes, read by slug, link graph for visualization
-
-## Web Dashboard
-
-| Page | What it does |
-|------|-------------|
-| **Dashboard** | Workspace overview with source count, note count, job status |
-| **Sources** | Upload files, list ingested sources, view extraction details |
-| **Vault** | Browse compiled notes, read Markdown with rendered wikilinks, filter by type/tag |
-| **Search** | Query bar with ranked results and expandable evidence panel |
-| **Jobs** | Monitor ingest/compile jobs, auto-refresh, trigger vault recompile |
-
-## Integration Adapters
-
-Optional adapters for external systems, all behind feature flags:
-
-| Adapter | Purpose | Pattern |
-|---------|---------|---------|
-| **DeerFlow** | Multi-step research orchestration | Protocol + Mock + HTTP client |
-| **Hermes** | Cross-session memory bridge | Protocol + Mock + Redis-backed |
-| **MiroFish** | Scenario simulation (isolated, requires confirmation) | Protocol + Mock, separate module |
-
-Each adapter implements a Python `Protocol`, ships with a mock for testing, and is wired only when its env var (`ATLAS_DEERFLOW_ENABLED`, etc.) is set.
 
 ## Quick Start
 
 ### Prerequisites
 
+- Mac with Apple Silicon (M1+), 16GB+ RAM (32GB recommended)
+- [Ollama](https://ollama.com) installed
 - Node.js 20+, pnpm 9+
 - Python 3.12+, [uv](https://docs.astral.sh/uv/)
 - Docker & Docker Compose
 
-### Setup
+### One-command setup
 
 ```bash
-# Infrastructure
-docker compose up -d
-
-# Dependencies
-pnpm install
-cd services/api && uv sync && cd ../..
-cd services/worker && uv sync && cd ../..
-
-# Database
-cd services/api && uv run alembic upgrade head && cd ../..
+./scripts/setup.sh
 ```
 
-### Run
+This downloads all models into `.local/`, installs dependencies, and pulls Docker images. Takes ~15 min on first run (mostly model downloads). After this, **no internet required**.
+
+### Start
 
 ```bash
-# API (port 8000)
-cd services/api && uv run uvicorn atlas_api.main:app --reload
-
-# Worker
-cd services/worker && uv run python -m atlas_worker.main
-
-# Web UI (port 3000)
-pnpm --filter @atlas/web dev
+./scripts/start.sh
 ```
 
-### Test
+Opens at [http://localhost:3000/projects](http://localhost:3000/projects)
+
+### Verify offline mode
 
 ```bash
-pnpm test                                        # shared + web (81 tests)
-cd services/api && uv run pytest tests/          # API (162 tests)
-cd services/worker && uv run pytest tests/       # worker (130 tests)
+# Disconnect WiFi, then:
+./scripts/verify-offline.sh
+./scripts/start.sh
+# Everything works.
 ```
 
-**373 tests passing** across all packages.
+### Run tests
 
-## API Reference
+```bash
+cd services/worker && uv run pytest tests/    # 316 tests
+pnpm turbo run build --filter=@atlas/web      # frontend build check
+```
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Liveness probe |
-| GET | `/health/ready` | Readiness probe (DB check) |
-| POST | `/workspaces` | Create workspace |
-| GET | `/workspaces` | List workspaces |
-| GET | `/sources` | List sources |
-| POST | `/sources` | Create source metadata |
-| POST | `/sources/{id}/upload` | Upload file + enqueue ingest |
-| GET | `/jobs` | List jobs |
-| GET | `/search?q=&limit=` | Search vault notes |
-| POST | `/search/reindex` | Rebuild search index |
-| POST | `/evidence` | Build evidence pack |
-| GET | `/vault/notes` | List vault notes |
-| GET | `/vault/notes/{slug}` | Read note by slug |
-| GET | `/vault/graph` | Wikilink graph |
-| POST | `/export` | Export vault as ZIP |
+## Supported File Types
+
+| Format | Extensions | Extractor |
+|--------|-----------|-----------|
+| Audio | `.mp3, .wav, .m4a, .ogg, .webm` | lightning-whisper-mlx (local) |
+| PDF | `.pdf` | pdfplumber |
+| Images | `.jpg, .png, .webp, .tiff` | mlx-vlm Gemma 4 vision (local) |
+| Word | `.docx` | python-docx |
+| Excel | `.xlsx, .csv` | openpyxl |
+| PowerPoint | `.pptx` | python-pptx |
+| Markdown | `.md` | passthrough |
+| Plain text | `.txt` | passthrough |
+| HTML | `.html, .htm` | BeautifulSoup4 |
+
+## Model Profiles
+
+Choose based on your hardware:
+
+| Profile | RAM | Synthesis Model | Best For |
+|---------|-----|----------------|----------|
+| `light` | 16GB | Gemma 4 12B | Quick extraction, basic summaries |
+| `standard` | 32GB | Gemma 4 27B | Full pipeline — **recommended** |
+| `reasoning` | 32GB+ | Qwen 3.5 27B Claude-distilled | Deep analysis, simulations |
+| `polyglot` | 32GB | Qwen 3 30B (100+ languages) | Multi-language projects |
+| `maximum` | 64GB+ | Qwen 2.5 72B | No compromises |
+
+Set via `MODEL_PROFILE=standard` in `.env`.
 
 ## Project Structure
 
 ```
-apps/web/                   Next.js 15 frontend (dashboard, vault browser, search)
-services/api/               FastAPI backend (routes, search engine, adapters, evals)
-services/worker/            arq workers (ingest, compiler, health checks, sync)
+apps/web/                   Next.js 15 frontend (projects, vault, search, outputs, tools)
+services/api/               FastAPI backend (routes, search, adapters, evals)
+services/worker/            arq workers (ingest, compiler, outputs, health)
+  inference/                Inference Router + backends (Ollama, Whisper MLX, Vision MLX)
+  extractors/               Audio, OCR, PDF, HTML, Word, Excel, PowerPoint, Text
+  compiler/                 Summarizer, meeting minutes, entities, concepts, tracker, translator
+  search/                   PgVectorStore, IncrementalEmbedder, RAGPipeline
 packages/shared/            TypeScript domain types (branded IDs, enums)
-vault/                      Sample Obsidian-compatible knowledge vault
-docs/                       15 design specs and implementation playbooks
+vault/                      Compiled Markdown vault (Obsidian-compatible)
+scripts/                    setup.sh, start.sh, verify-offline.sh
+.local/                     Models, data, uploads (gitignored, self-contained)
+docs/                       Design specs, roadmap, implementation playbooks
 ```
 
 ## Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| Markdown vault on disk, not in DB | Portable, works in Obsidian, survives the app |
-| TF-IDF over vector search | Deterministic, no embedding model dependency, good enough for structured vaults |
-| Heuristic NER over LLM extraction | Fast, free, repeatable — LLM can be added later for synthesis |
-| SHA-256 dedup at ingest | Idempotent uploads, no duplicate processing |
-| Protocol-based adapters | Swap implementations without touching business logic |
-| Feature-flagged integrations | DeerFlow/Hermes/MiroFish are opt-in, never required |
-| Frozen Pydantic models | Immutable domain objects prevent accidental mutation |
-| Append-only job logs | Every ingest/compile is traceable, rollback-safe |
+| Edge-first, no cloud APIs | Client data stays on your machine |
+| Ollama + MLX hybrid | Best model management (Ollama) + best Mac performance (MLX) |
+| Sequential model loading | One model in RAM at a time — 32GB runs 27B models |
+| pgvector in PostgreSQL | Vector search + metadata JOINs in one query, no extra service |
+| Markdown vault as product | Portable, Obsidian-compatible, survives the app |
+| `.local/` self-containment | Move folder = move everything. Delete = clean slate |
+| Deterministic pipeline + opt-in LLM | Reproducible base, synthesis where it adds value |
+| Frozen dataclasses everywhere | Immutable domain objects prevent hidden mutation |
+| RAG for all generated outputs | Every report grounded in vault knowledge, never hallucinated |
 
-## Eval Framework
+## Language Support
 
-Built-in quality metrics for search and compilation:
+- **Transcription**: 99 languages (Whisper large-v3)
+- **EN→ES workflow**: Whisper transcribes English → LLM translates to Spanish (highest accuracy)
+- **ES→ES workflow**: Whisper with `language="es"` direct
+- **Synthesis**: Gemma 4 and Qwen models handle English + Spanish natively
 
-- **Precision@k** — what fraction of returned results are relevant
-- **Recall@k** — what fraction of relevant results were returned
-- **MRR** (Mean Reciprocal Rank) — how high the first relevant result ranks
-- **Compiler evals** — frontmatter completeness, backlink integrity, index coverage
+## Roadmap
 
-Run evals:
-```bash
-cd services/api && uv run pytest tests/evals/
-```
+See [docs/15-edge-first-roadmap.md](docs/15-edge-first-roadmap.md) for the full implementation plan.
+
+| Phase | Status |
+|-------|--------|
+| Phase 0: Inference Router | Done |
+| Phase 0.5: Offline Setup | Done |
+| Phase 1: Extractors (audio, OCR, Office) | Done |
+| Phase 2: LLM Compilation | Done |
+| Phase 3: Project UX | Done |
+| Phase 4: RAG + pgvector | Done |
+| Phase 5: Model Management UI | Planned |
+| Phase 6: Polish + Onboarding | Planned |
+| Phase 7: Mobile Companion (Google AI Edge) | Future |
 
 ## License
 
-MIT
+Apache 2.0
