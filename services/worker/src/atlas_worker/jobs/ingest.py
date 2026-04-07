@@ -98,6 +98,23 @@ async def ingest_source(ctx: dict[str, Any], source_id: str) -> dict[str, object
         # ------------------------------------------------------------------
         await _persist_manifest(ctx, source_id, manifest, title)
 
+        # ------------------------------------------------------------------
+        # Step 8: embed chunks into pgvector so chat/search can find them
+        # Graceful — if embedding fails, ingest still succeeds.
+        # ------------------------------------------------------------------
+        try:
+            workspace_id = source.get("workspace_id", "")
+            await _embed_source_chunks(
+                ctx=ctx,
+                workspace_id=workspace_id,
+                source_id=source_id,
+                title=title or source_id,
+                chunks=chunks,
+                content_hash=content_hash,
+            )
+        except Exception as exc:
+            logger.warning("embedding failed for %s: %s", source_id, exc)
+
         logger.info(
             "ingest_source completed",
             extra={"source_id": source_id, "chunks": len(chunks),
@@ -205,6 +222,65 @@ async def _persist_manifest(
                WHERE id = $3""",
             _json.dumps(manifest), title, source_id,
         )
+
+
+async def _embed_source_chunks(
+    *,
+    ctx: dict[str, Any],
+    workspace_id: str,
+    source_id: str,
+    title: str,
+    chunks: list[str],
+    content_hash: str,
+) -> None:
+    """Embed each chunk via the InferenceRouter and upsert into note_embeddings.
+
+    The note_slug uses the source_id for now — once compile_vault creates
+    proper vault notes, this will be replaced by the compiled slug.
+    """
+    router = ctx.get("router")
+    pool = ctx.get("pg_pool")
+    if router is None or pool is None or not chunks:
+        return
+
+    note_slug = f"src-{source_id[:8]}"
+
+    for idx, chunk in enumerate(chunks):
+        if not chunk.strip():
+            continue
+        import hashlib as _h
+        chunk_hash = _h.sha256(chunk.encode("utf-8")).hexdigest()
+        try:
+            embedding = await router.embed(chunk)
+        except Exception as exc:
+            logger.warning("embed chunk %d failed: %s", idx, exc)
+            continue
+
+        if not embedding:
+            continue
+
+        vec_str = "[" + ",".join(str(v) for v in embedding) + "]"
+
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO note_embeddings
+                     (workspace_id, note_slug, note_title, chunk_idx,
+                      chunk_text, content_hash, embedding, model)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7::vector, $8)
+                   ON CONFLICT (workspace_id, note_slug, chunk_idx)
+                   DO UPDATE SET
+                     chunk_text = EXCLUDED.chunk_text,
+                     content_hash = EXCLUDED.content_hash,
+                     embedding = EXCLUDED.embedding,
+                     updated_at = now()""",
+                workspace_id, note_slug, title, idx, chunk, chunk_hash,
+                vec_str, "nomic-embed-text",
+            )
+
+    logger.info(
+        "embedded %d chunks for source %s into note_embeddings",
+        len(chunks), source_id,
+    )
 
 
 def _read_file(storage_key: str) -> bytes:
