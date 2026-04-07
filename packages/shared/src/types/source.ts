@@ -10,6 +10,7 @@ export interface SourceManifest {
   readonly chunkCount: number | null;
   readonly model: string | null;
   readonly confidenceNotes: string | null;
+  readonly needsReingest?: boolean;
 }
 
 export interface Source {

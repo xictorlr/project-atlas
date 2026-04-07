@@ -16,6 +16,7 @@ class SourceManifest(BaseModel):
     chunk_count: int | None
     model: str | None
     confidence_notes: str | None
+    needs_reingest: bool = False
 
 
 class Source(BaseModel):

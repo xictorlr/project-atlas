@@ -47,6 +47,7 @@ def _row_to_model(row: SourceRow) -> Source:
             chunk_count=row.manifest.get("chunk_count"),
             model=row.manifest.get("model"),
             confidence_notes=row.manifest.get("confidence_notes"),
+            needs_reingest=bool(row.manifest.get("needs_reingest", False)),
         )
     return Source(
         id=row.id,
@@ -210,6 +211,33 @@ async def upload_source(
         updated_at=now,
     )
     db.add(row)
+    await db.flush()
+
+    await enqueue_job(
+        job_type="ingest_source",
+        payload={"source_id": source_id},
+        workspace_id=workspace_id,
+        db=db,
+    )
+
+    return _row_to_model(row)
+
+
+@router.post("/{source_id}/reingest", response_model=Source)
+async def reingest_source(
+    workspace_id: str, source_id: str, db: AsyncSession = Depends(get_db)
+) -> Source:
+    """Re-queue an existing source for ingestion.
+
+    Used after a previous ingest failed (e.g. backend was missing) or after
+    the source file has been updated. The job re-runs against the current
+    storage_key — no upload needed.
+    """
+    await _require_workspace(workspace_id, db)
+    row = await _get_source_or_404(workspace_id, source_id, db)
+
+    row.status = SourceStatus.PENDING
+    row.updated_at = datetime.now(tz=timezone.utc)
     await db.flush()
 
     await enqueue_job(

@@ -60,6 +60,16 @@ export function deleteSource(
   );
 }
 
+export function reingestSource(
+  workspaceId: string,
+  sourceId: string
+): Promise<ApiResponse<Source>> {
+  return apiFetch<Source>(
+    `/api/v1/workspaces/${workspaceId}/sources/${sourceId}/reingest`,
+    { method: "POST" }
+  );
+}
+
 // Jobs
 export function getJobs(workspaceId: string): Promise<ApiResponse<Job[]>> {
   return apiFetch<Job[]>(`/api/v1/workspaces/${workspaceId}/jobs`);

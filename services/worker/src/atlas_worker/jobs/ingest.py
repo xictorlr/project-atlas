@@ -82,6 +82,10 @@ async def ingest_source(ctx: dict[str, Any], source_id: str) -> dict[str, object
         # Step 6: build manifest
         # ------------------------------------------------------------------
         ingested_at = datetime.now(timezone.utc).isoformat()
+        needs_reingest = bool(extracted.get("needs_reingest"))
+        confidence_notes = f"content_hash={content_hash}"
+        if needs_reingest:
+            confidence_notes += "; placeholder=true; reason=backend_unavailable"
         manifest: dict[str, object] = {
             "ingested_at": ingested_at,
             "normalized_at": None,
@@ -90,7 +94,8 @@ async def ingest_source(ctx: dict[str, Any], source_id: str) -> dict[str, object
             "file_size_bytes": file_size_bytes,
             "chunk_count": len(chunks),
             "model": None,
-            "confidence_notes": f"content_hash={content_hash}",
+            "needs_reingest": needs_reingest,
+            "confidence_notes": confidence_notes,
         }
 
         # ------------------------------------------------------------------
@@ -385,14 +390,29 @@ async def _extract_async(
     """Handle async extractors that need the InferenceRouter (audio, images).
 
     Returns None if mime_type is not an async type (caller should fall through to _extract).
+
+    Edge-first contract: if the underlying MLX backend is unavailable
+    (e.g., lightning-whisper-mlx or mlx-vlm not installed) we MUST NOT crash
+    the ingest job. Instead we return a deterministic placeholder transcript
+    so the source still lands in the vault as `ready` with a clear note that
+    the user can re-run once the backend is installed.
     """
     mime = (mime_type or "").lower()
     router = ctx.get("router")
 
     # Audio files → Whisper transcription
-    if mime.startswith("audio/") and router is not None:
-        from atlas_worker.extractors.audio import extract_audio
-        result = await extract_audio(raw, filename, router)
+    if mime.startswith("audio/"):
+        if router is None:
+            return _placeholder_audio(filename, "inference router not available")
+        try:
+            from atlas_worker.extractors.audio import extract_audio
+            result = await extract_audio(raw, filename, router)
+        except RuntimeError as exc:
+            logger.warning("audio backend unavailable for %s: %s", filename, exc)
+            return _placeholder_audio(filename, str(exc))
+        except Exception as exc:
+            logger.warning("audio extraction failed for %s: %s", filename, exc)
+            return _placeholder_audio(filename, f"transcription error: {exc}")
         return {
             "full_text": result.text,
             "title": None,
@@ -402,9 +422,18 @@ async def _extract_async(
         }
 
     # Image files → Vision OCR
-    if mime.startswith("image/") and router is not None:
-        from atlas_worker.extractors.ocr import extract_ocr
-        result = await extract_ocr(raw, filename, router)
+    if mime.startswith("image/"):
+        if router is None:
+            return _placeholder_image(filename, "inference router not available")
+        try:
+            from atlas_worker.extractors.ocr import extract_ocr
+            result = await extract_ocr(raw, filename, router)
+        except RuntimeError as exc:
+            logger.warning("vision backend unavailable for %s: %s", filename, exc)
+            return _placeholder_image(filename, str(exc))
+        except Exception as exc:
+            logger.warning("vision extraction failed for %s: %s", filename, exc)
+            return _placeholder_image(filename, f"OCR error: {exc}")
         return {
             "full_text": result.text,
             "title": None,
@@ -413,6 +442,47 @@ async def _extract_async(
         }
 
     return None
+
+
+def _placeholder_audio(filename: str, reason: str) -> dict[str, Any]:
+    """Build a placeholder transcript when the Whisper backend is unavailable.
+
+    The vault still gets a record so the user knows the file landed; the
+    `confidence_notes` field tells them why no transcript exists yet.
+    """
+    text = (
+        f"# {filename}\n\n"
+        f"_Audio uploaded but not yet transcribed._\n\n"
+        f"Reason: {reason}\n\n"
+        f"Install the MLX audio backend in services/worker "
+        f"(`uv sync --extra mlx`) and re-run ingest to populate the transcript."
+    )
+    return {
+        "full_text": text,
+        "title": filename,
+        "language": "unknown",
+        "duration_seconds": 0.0,
+        "confidence": 0.0,
+        "needs_reingest": True,
+    }
+
+
+def _placeholder_image(filename: str, reason: str) -> dict[str, Any]:
+    """Build a placeholder OCR result when the vision backend is unavailable."""
+    text = (
+        f"# {filename}\n\n"
+        f"_Image uploaded but not yet OCR'd._\n\n"
+        f"Reason: {reason}\n\n"
+        f"Install the MLX vision backend in services/worker "
+        f"(`uv sync --extra mlx`) and re-run ingest to extract the text."
+    )
+    return {
+        "full_text": text,
+        "title": filename,
+        "language": None,
+        "has_tables": False,
+        "needs_reingest": True,
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -24,6 +24,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { getWorkspace, getSources, getJobs } from "@/lib/api";
+import { SourceActions } from "@/components/sources/source-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ interface SourceFromAPI {
   title: string | null;
   description: string | null;
   created_at: string;
+  manifest: { needs_reingest?: boolean } | null;
 }
 
 interface JobFromAPI {
@@ -260,31 +262,52 @@ function SourcesTab({ projectId, sources }: { projectId: string; sources: Source
                 <th className="px-4 py-2 text-left font-medium">Type</th>
                 <th className="px-4 py-2 text-left font-medium">Status</th>
                 <th className="px-4 py-2 text-left font-medium">Added</th>
+                <th className="px-4 py-2 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {sources.map((s) => (
-                <tr key={s.id} className="border-t">
-                  <td className="px-4 py-2">{s.title || s.id.slice(0, 8)}</td>
-                  <td className="px-4 py-2">
-                    <Badge variant="outline" className="text-xs">
-                      {s.kind}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        PIPELINE_STATUS_STYLES[s.status] ?? PIPELINE_STATUS_STYLES.idle
-                      }`}
-                    >
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {new Date(s.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
+              {sources.map((s) => {
+                const needsReingest = s.manifest?.needs_reingest === true;
+                return (
+                  <tr key={s.id} className="border-t">
+                    <td className="px-4 py-2">
+                      <div className="flex flex-col">
+                        <span>{s.title || s.id.slice(0, 8)}</span>
+                        {needsReingest && (
+                          <span className="text-xs text-amber-700">
+                            Placeholder — install MLX backend and re-ingest
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <Badge variant="outline" className="text-xs">
+                        {s.kind}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          PIPELINE_STATUS_STYLES[s.status] ?? PIPELINE_STATUS_STYLES.idle
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {new Date(s.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <SourceActions
+                        workspaceId={projectId}
+                        sourceId={s.id}
+                        status={s.status}
+                        needsReingest={needsReingest}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
